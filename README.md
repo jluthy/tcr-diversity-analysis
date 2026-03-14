@@ -12,9 +12,9 @@ Pre-rendered HTML reports are available for immediate viewing:
 
 | Notebook | Description | View |
 |:---|:---|:---|
-| **01 — Data Overview** | Dataset characterization, sample summary, V gene usage, quality checks | [View Report](reports/01-jal-data-overview.html) |
-| **02 — Diversity Analysis** | Shannon entropy, clonality, richness, D50 — Apheresis vs Product comparison | [View Report](reports/02-jal-diversity-analysis.html) |
-| **03 — Clonal Expansion** | Top expanded clonotypes, cumulative dominance curves, shared clone tracking | [View Report](reports/03-jal-clonal-expansion.html) |
+| **01 — Data Overview** | Dataset characterization, sample summary, V gene usage, quality checks | [View Report](https://jluthy.github.io/tcr-diversity-analysis/reports/01-jal-data-overview.html) |
+| **02 — Diversity Analysis** | Shannon entropy, clonality, richness, D50 — Apheresis vs Product comparison | [View Report](https://jluthy.github.io/tcr-diversity-analysis/reports/02-jal-diversity-analysis.html) |
+| **03 — Clonal Expansion** | Top expanded clonotypes, cumulative dominance curves, shared clone tracking | [View Report](https://jluthy.github.io/tcr-diversity-analysis/reports/03-jal-clonal-expansion.html) |
 
 ---
 
