@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Joshua Luthy | Computational Immunologist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050a0e;
+      --surface: #0b1520;
+      --surface2: #111d2b;
+      --border: #1a2e42;
+      --accent: #00d4ff;
+      --accent2: #7b2fff;
+      --accent3: #00ff9d;
+      --text: #e8f4f8;
+      --text-muted: #6b8fa8;
+      --text-dim: #3a5a70;
+      --mono: 'Space Mono', monospace;
+      --display: 'Syne', sans-serif;
+      --body: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--body);
+      font-size: 16px;
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── BACKGROUND GRID ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.08) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.2rem 3rem;
+      background: rgba(5,10,14,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .nav-logo span { color: var(--text-muted); }
+
+    nav ul {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    nav a {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transition: transform 0.2s;
+    }
+
+    nav a:hover { color: var(--accent); }
+    nav a:hover::after { transform: scaleX(1); }
+
+    /* ── HERO ── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 3rem 4rem;
+      overflow: hidden;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 800px;
+    }
+
+    .hero-tag {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.2s;
+    }
+
+    .hero-tag::before {
+      content: '';
+      width: 32px; height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-family: var(--display);
+      font-size: clamp(3rem, 7vw, 6rem);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.4s;
+    }
+
+    h1 .dim { color: var(--text-dim); }
+    h1 .glow {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-desc {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 560px;
+      margin-bottom: 2.5rem;
+      font-weight: 300;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.6s;
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.8s;
+    }
+
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.85rem 1.75rem;
+      border-radius: 2px;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      background: #fff;
+      box-shadow: 0 0 30px rgba(0,212,255,0.4);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Hero canvas viz */
+    #hero-canvas {
+      position: absolute;
+      right: -100px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 600px;
+      height: 600px;
+      opacity: 0.6;
+      animation: fadeIn 1.5s ease forwards 1s;
+    }
+
+    /* ── STATS BAR ── */
+    .stats-bar {
+      position: relative;
+      z-index: 2;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .stat-item {
+      padding: 2rem 2.5rem;
+      border-right: 1px solid var(--border);
+      opacity: 0;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .stat-item:nth-child(1) { animation-delay: 0.1s; }
+    .stat-item:nth-child(2) { animation-delay: 0.2s; }
+    .stat-item:nth-child(3) { animation-delay: 0.3s; }
+    .stat-item:nth-child(4) { animation-delay: 0.4s; border-right: none; }
+
+    .stat-number {
+      font-family: var(--display);
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      position: relative;
+      z-index: 2;
+      padding: 6rem 3rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 3.5rem;
+    }
+
+    .section-num {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+
+    h2 {
+      font-family: var(--display);
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      margin-left: 1rem;
+    }
+
+    /* ── ABOUT ── */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    .about-text p {
+      color: var(--text-muted);
+      margin-bottom: 1.2rem;
+      font-size: 1.05rem;
+    }
+
+    .about-text p strong { color: var(--text); font-weight: 500; }
+
+    .skills-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .skill-tag {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      padding: 0.5rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--accent);
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .skill-tag:hover {
+      border-left-color: var(--accent3);
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    .skill-tag.purple { border-left-color: var(--accent2); }
+    .skill-tag.green { border-left-color: var(--accent3); }
+
+    /* ── PROJECTS ── */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1.5px solid var(--border);
+    }
+
+    .project-card {
+      background: var(--surface);
+      padding: 2.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+
+    .project-card:hover { background: var(--surface2); }
+    .project-card:hover::before { transform: scaleX(1); }
+
+    .project-card.featured { grid-column: span 2; }
+
+    .project-type {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .project-type .badge {
+      background: rgba(0,212,255,0.1);
+      border: 1px solid rgba(0,212,255,0.2);
+      padding: 0.15rem 0.5rem;
+      border-radius: 2px;
+      color: var(--accent);
+    }
+
+    .badge.patent { background: rgba(123,47,255,0.1); border-color: rgba(123,47,255,0.2); color: var(--accent2); }
+    .badge.publication { background: rgba(0,255,157,0.1); border-color: rgba(0,255,157,0.2); color: var(--accent3); }
+
+    h3 {
+      font-family: var(--display);
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    .project-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.65;
+    }
+
+    .project-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .project-tag {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+
+    .project-arrow {
+      position: absolute;
+      bottom: 2rem;
+      right: 2rem;
+      font-size: 1.2rem;
+      color: var(--text-dim);
+      transition: all 0.2s;
+    }
+
+    .project-card:hover .project-arrow {
+      color: var(--accent);
+      transform: translate(3px, -3px);
+    }
+
+    /* ── DEMO VIZ ── */
+    #demo {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      max-width: 100%;
+      padding: 6rem 0;
+    }
+
+    #demo .inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 3rem;
+    }
+
+    .demo-container {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 2rem;
+      margin-top: 2rem;
+      position: relative;
+    }
+
+    .demo-label {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 1rem;
+    }
+
+    .demo-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .demo-tab {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.75rem 1.5rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+
+    .demo-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .demo-panel { display: none; }
+    .demo-panel.active { display: block; }
+
+    canvas.viz { width: 100%; border-radius: 2px; }
+
+    /* ── PUBLICATIONS ── */
+    .pub-list { display: flex; flex-direction: column; gap: 1.5rem; }
+
+    .pub-item {
+      padding: 2rem 2.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent3);
+      position: relative;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: block;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .pub-item:hover { border-left-color: var(--accent); background: var(--surface2); }
+
+    .pub-journal {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent3);
+      margin-bottom: 0.5rem;
+    }
+
+    .pub-title {
+      font-family: var(--display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+
+    .pub-authors {
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    .pub-authors .me {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .pub-doi {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--accent);
+      margin-top: 0.6rem;
+      letter-spacing: 0.04em;
+    }
+
+    .pub-year {
+      position: absolute;
+      top: 2rem; right: 2rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* ── CONTACT ── */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+
+    .contact-left h2 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1rem;
+    }
+
+    .contact-left p {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+    }
+
+    .contact-links {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .contact-link {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      padding: 1rem 1.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      transition: all 0.2s;
+    }
+
+    .contact-link:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .contact-link svg {
+      width: 18px; height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 2;
+      border-top: 1px solid var(--border);
+      padding: 2rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer p {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── TOAST NOTIFICATION ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      padding: 0.85rem 1.75rem;
+      border-radius: 2px;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      box-shadow: 0 0 20px rgba(0,212,255,0.2);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 0.6; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent3);
+      display: inline-block;
+      animation: pulse 2s ease infinite;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      nav ul { gap: 1.5rem; }
+      #hero { padding: 6rem 1.5rem 3rem; }
+      #hero-canvas { display: none; }
+      .stats-bar { grid-template-columns: 1fr 1fr; }
+      section { padding: 4rem 1.5rem; }
+      .about-grid, .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .projects-grid { grid-template-columns: 1fr; }
+      .project-card.featured { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">J.<span>Luthy</span> <span style="color:var(--text-dim)">// jluthy.github.io</span></div>
+  <ul>
+    <li><a href="#about">About</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#demo">Demo</a></li>
+    <li><a href="#publications">Papers</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero" style="max-width:100%; padding-top:8rem; padding-bottom:0;">
+  <div class="hero-content">
+    <div class="hero-tag">
+      <span class="live-dot"></span>
+      Computational Immunologist · Bioinformatics Pipeline Architect
+    </div>
+    <h1>
+      Josh<br>
+      <span class="dim">Luthy</span><span class="glow">.</span>
+    </h1>
+    <p class="hero-desc">
+      Building the analytical infrastructure that turns immune repertoire data
+      into clinical insight — from TCR clonal tracking to ML-powered cell classification.
+    </p>
+    <div class="hero-ctas">
+      <a href="#projects" class="btn btn-primary">View Projects</a>
+      <a href="https://github.com/jluthy" target="_blank" class="btn btn-ghost">GitHub ↗</a>
+      <a href="mailto:jluthy123@gmail.com" class="btn btn-ghost">Get in Touch</a>
+    </div>
+  </div>
+  <canvas id="hero-canvas" width="600" height="600"></canvas>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-number">8+</div>
+    <div class="stat-label">Years Experience</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">2</div>
+    <div class="stat-label">Publications</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">1</div>
+    <div class="stat-label">Patent Granted</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-number">∞</div>
+    <div class="stat-label">Cells Analyzed</div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <h2>About</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="about-grid">
+    <div class="about-text">
+      <p>
+        I'm a <strong>computational immunologist and bioinformatics scientist</strong> with 8+ years
+        building analytical pipelines for high-dimensional immune data — from flow cytometry
+        to single-cell RNA sequencing to TCR repertoire analysis.
+      </p>
+      <p>
+        Most recently, I served as a <strong>contract Computational Immunology Scientist for Marker Therapeutics</strong>,
+        where I architected end-to-end TCR repertoire pipelines for longitudinal clinical trial datasets,
+        integrating immune dynamics with clinical response categories to inform translational decisions.
+      </p>
+      <p>
+        My work sits at the intersection of <strong>immunology, machine learning, and software engineering</strong> —
+        building tools (R packages, FlowJo plugins, ML ensembles) that end up in papers, patents,
+        and executive boardrooms.
+      </p>
+      <p>
+        Based in Hawaii. Open to senior and principal-level roles in translational biotech and computational immunology.
+      </p>
+    </div>
+    <div>
+      <div style="margin-bottom:1rem; font-family:var(--mono); font-size:0.7rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim);">Core Competencies</div>
+      <div class="skills-grid">
+        <div class="skill-tag">TCR Repertoire Analysis</div>
+        <div class="skill-tag">edgeR / FDR Modeling</div>
+        <div class="skill-tag purple">R / Bioconductor</div>
+        <div class="skill-tag purple">Python / scikit-learn</div>
+        <div class="skill-tag green">Random Forest + KNN</div>
+        <div class="skill-tag green">UMAP / Dim. Reduction</div>
+        <div class="skill-tag">scRNA-seq Analysis</div>
+        <div class="skill-tag">Flow Cytometry</div>
+        <div class="skill-tag purple">Java / FlowJo Plugins</div>
+        <div class="skill-tag purple">S4 Object Systems</div>
+        <div class="skill-tag green">LLM / RAG Pipelines</div>
+        <div class="skill-tag green">AI-Assisted Workflows</div>
+        <div class="skill-tag">Clonal Expansion AUC</div>
+        <div class="skill-tag">Clinical Data Integration</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects" style="max-width:100%; background:var(--surface); padding: 6rem 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border);">
+  <div style="max-width:1200px; margin:0 auto; padding:0 3rem;">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Featured Projects</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="projects-grid">
+
+      <!-- CytoCrunch - Featured -->
+      <a href="https://github.com/jluthy/CytoCrunch" target="_blank" class="project-card featured">
+        <div class="project-type">
+          <span class="badge">R Package</span>
+          <span class="badge" style="background:rgba(0,255,157,0.1);border-color:rgba(0,255,157,0.2);color:var(--accent3)">Open Source</span>
+        </div>
+        <h3>CytoCrunch</h3>
+        <p class="project-desc">
+          A comprehensive R package bridging FlowJo's plugin ecosystem and Bioconductor workflows.
+          CytoCrunch manages, transforms, and extends flow cytometry data using a custom S4 object system,
+          enabling clustering, dimensionality reduction, and scRNA-seq–style analysis on traditional
+          cytometry outputs. Built to handle millions of cells across multi-tissue, longitudinal studies.
+        </p>
+        <div class="project-tags">
+          <span class="project-tag">R / Bioconductor</span>
+          <span class="project-tag">S4 Object System</span>
+          <span class="project-tag">FlowJo Integration</span>
+          <span class="project-tag">UMAP</span>
+          <span class="project-tag">Clustering</span>
+          <span class="project-tag">scRNA-seq</span>
+        </div>
+        <span class="project-arrow">↗</span>
+      </a>
+
+      <!-- TCR Pipeline -->
+      <a href="https://github.com/jluthy/tcr-diversity-analysis" target="_blank" class="project-card">
+        <div class="project-type">
+          <span class="badge">Analysis Pipeline</span>
+        </div>
+        <h3>TCR Repertoire Analysis Pipeline</h3>
+        <p class="project-desc">
+          A synthetic, end-to-end TCR clonotype analysis pipeline modeled on clinical trial workflows.
+          Covers clonal expansion modeling, AUC-based kinetics, edgeR statistical framework with FDR control,
+          and integration with clinical response categories (CR / PR / PD).
+        </p>
+        <div class="project-tags">
+          <span class="project-tag">immunarch</span>
+          <span class="project-tag">edgeR</span>
+          <span class="project-tag">R Markdown</span>
+          <span class="project-tag">TCR</span>
+          <span class="project-tag">Clonal Tracking</span>
+        </div>
+        <span class="project-arrow">↗</span>
+      </a>
+
+      <!-- Ensemble ML -->
+      <a href="https://github.com/jluthy" target="_blank" class="project-card">
+        <div class="project-type">
+          <span class="badge patent">Patent</span>
+          <span class="badge patent">ML Ensemble</span>
+        </div>
+        <h3>CytoClassify: Ensemble Cell Classifier</h3>
+        <p class="project-desc">
+          A patent-backed ensemble machine learning system combining pre-trained Random Forest and KNN models
+          for automated cell population identification in unseen cytometry data. Dramatically improves
+          classification accuracy and analyst efficiency for imaging cytometry workflows.
+        </p>
+        <div class="project-tags">
+          <span class="project-tag">Random Forest</span>
+          <span class="project-tag">KNN</span>
+          <span class="project-tag">scikit-learn</span>
+          <span class="project-tag">Python</span>
+          <span class="project-tag">Imaging Cytometry</span>
+        </div>
+        <span class="project-arrow">↗</span>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section id="demo" style="max-width:100%; padding:6rem 0; border-bottom:1px solid var(--border);">
+  <div style="max-width:1200px; margin:0 auto; padding:0 3rem;">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Interactive Demo</h2>
+      <div class="section-line"></div>
+    </div>
+    <p style="color:var(--text-muted); margin-bottom:2rem; max-width:560px;">
+      Live visualizations of the analytical techniques underlying this work.
+      Data shown is synthetic and generated in-browser.
+    </p>
+    <div class="demo-tabs">
+      <button class="demo-tab active" onclick="switchTab('clonal')">Clonal Expansion</button>
+      <button class="demo-tab" onclick="switchTab('umap')">UMAP / Clusters</button>
+      <button class="demo-tab" onclick="switchTab('repertoire')">Repertoire Diversity</button>
+    </div>
+
+    <div id="tab-clonal" class="demo-panel active">
+      <div class="demo-label">// Longitudinal Clonal Expansion — 6 Timepoints, Top 5 Clonotypes</div>
+      <canvas id="clonal-canvas" height="320" style="width:100%"></canvas>
+    </div>
+
+    <div id="tab-umap" class="demo-panel">
+      <div class="demo-label">// UMAP dimensionality reduction — synthetic immune cell populations</div>
+      <canvas id="umap-canvas" height="400" style="width:100%"></canvas>
+    </div>
+
+    <div id="tab-repertoire" class="demo-panel">
+      <div class="demo-label">// Repertoire diversity metrics — Apheresis vs. Product (Shannon Entropy, Clonality, Richness, D50)</div>
+      <canvas id="repertoire-canvas" height="380" style="width:100%"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- PUBLICATIONS -->
+<section id="publications">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <h2>Publications</h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="pub-list">
+    <a href="https://doi.org/10.3389/fimmu.2022.1007016" target="_blank" class="pub-item">
+      <div class="pub-year">2022</div>
+      <div class="pub-journal">Frontiers in Immunology</div>
+      <div class="pub-title">Integrated machine learning approaches for flow cytometric quantification of myeloid-derived suppressor cells in acute sepsis</div>
+      <div class="pub-authors">Bonavia AS, Samuelsen A, <span class="me">Luthy J</span>, Halstead ES</div>
+      <div class="pub-doi">doi: 10.3389/fimmu.2022.1007016 ↗</div>
+    </a>
+    <a href="https://doi.org/10.3389/fimmu.2022.953151" target="_blank" class="pub-item" style="border-left-color:var(--accent2);">
+      <div class="pub-year">2022</div>
+      <div class="pub-journal" style="color:var(--accent2);">Frontiers in Immunology</div>
+      <div class="pub-title">Hepatic iNKT cells produce type 2 cytokines and restrain antiviral T cells during acute hepacivirus infection</div>
+      <div class="pub-authors">Raus S, Lopez-Scarim J, <span class="me">Luthy J</span>, Billerbeck E</div>
+      <div class="pub-doi">doi: 10.3389/fimmu.2022.953151 ↗</div>
+    </a>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" style="max-width:100%; background:var(--surface); padding:6rem 0; border-top:1px solid var(--border);">
+  <div style="max-width:1200px; margin:0 auto; padding:0 3rem;">
+    <div class="contact-grid">
+      <div class="contact-left">
+        <div class="section-header" style="margin-bottom:1rem;">
+          <span class="section-num">05</span>
+          <h2>Let's Connect</h2>
+        </div>
+        <p>
+          Open to senior and principal-level roles in computational immunology,
+          translational bioinformatics, and applied ML for life sciences.
+        </p>
+        <button onclick="copyEmail()" class="btn btn-primary" id="copy-email-btn">Copy Email Address</button>
+      </div>
+      <div class="contact-links">
+        <a href="https://github.com/jluthy" target="_blank" class="contact-link">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          github.com/jluthy
+        </a>
+        <a href="mailto:jluthy123@gmail.com" class="contact-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          jluthy123@gmail.com
+        </a>
+        <a href="tel:5125773250" class="contact-link">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          512-577-3250
+        </a>
+        <div class="contact-link" style="cursor:default;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Kailua-Kona, Hawaiʻi
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2025 Joshua Luthy · Built with intent.</p>
+  <p>jluthy.github.io</p>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast">Email copied to clipboard</div>
+
+<script>
+// ── HERO CANVAS — animated node graph ──
+const heroCanvas = document.getElementById('hero-canvas');
+const hCtx = heroCanvas.getContext('2d');
+const W = 600, H = 600;
+heroCanvas.width = W; heroCanvas.height = H;
+
+const nodes = Array.from({length: 60}, () => ({
+  x: Math.random() * W,
+  y: Math.random() * H,
+  vx: (Math.random() - 0.5) * 0.4,
+  vy: (Math.random() - 0.5) * 0.4,
+  r: Math.random() * 3 + 1,
+  color: Math.random() > 0.6 ? '#00d4ff' : Math.random() > 0.5 ? '#7b2fff' : '#00ff9d'
+}));
+
+function drawHero() {
+  hCtx.clearRect(0, 0, W, H);
+  // Edges
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i+1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 100) {
+        hCtx.beginPath();
+        hCtx.strokeStyle = `rgba(0,212,255,${(1 - d/100) * 0.25})`;
+        hCtx.lineWidth = 0.5;
+        hCtx.moveTo(nodes[i].x, nodes[i].y);
+        hCtx.lineTo(nodes[j].x, nodes[j].y);
+        hCtx.stroke();
+      }
+    }
+  }
+  // Nodes
+  nodes.forEach(n => {
+    hCtx.beginPath();
+    hCtx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+    hCtx.fillStyle = n.color;
+    hCtx.shadowColor = n.color;
+    hCtx.shadowBlur = 8;
+    hCtx.fill();
+    hCtx.shadowBlur = 0;
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > W) n.vx *= -1;
+    if (n.y < 0 || n.y > H) n.vy *= -1;
+  });
+  requestAnimationFrame(drawHero);
+}
+drawHero();
+
+// ── DEMO TABS ──
+function switchTab(name) {
+  document.querySelectorAll('.demo-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'clonal') drawClonal();
+  if (name === 'umap') drawUMAP();
+  if (name === 'repertoire') drawRepertoire();
+}
+
+// ── CLONAL EXPANSION CHART — fixed data, 5 clonotypes ──
+// Biologically realistic: clonotypes present at low baseline, expand post-treatment, most persist
+const CLONAL_DATA = {
+  timepoints: ['Pre', 'Wk2', 'Wk4', 'Wk8', 'Wk12', 'Wk16'],
+  clones: [
+    { name: 'Clone A (TRBV7-2)', color: '#00d4ff',  values: [0.08, 0.15, 0.62, 1.45, 1.28, 1.10] },  // strong expander, persists
+    { name: 'Clone B (TRBV5-1)', color: '#7b2fff',  values: [0.05, 0.09, 0.31, 0.88, 1.12, 0.95] },  // late peaker, persists
+    { name: 'Clone C (TRBV6-5)', color: '#00ff9d',  values: [0.12, 0.28, 0.75, 0.52, 0.41, 0.38] },  // early expander, slow decline
+    { name: 'Clone D (TRBV20-1)',color: '#ffd93d',  values: [0.03, 0.06, 0.18, 0.42, 0.35, 0.30] },  // moderate, persistent
+    { name: 'Clone E (TRBV28)',  color: '#ff6b6b',  values: [0.10, 0.22, 0.48, 0.33, 0.20, 0.12] },  // transient expander
+  ]
+};
+
+function drawClonal() {
+  const canvas = document.getElementById('clonal-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = 320 * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = canvas.offsetWidth, H = 320;
+  ctx.clearRect(0,0,W,H);
+
+  const { timepoints, clones } = CLONAL_DATA;
+  const pad = {l:60,r:30,t:30,b:50};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const maxVal = Math.max(...clones.flatMap(c => c.values)) * 1.15;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(26,46,66,0.8)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch * (i/4);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l+cw, y); ctx.stroke();
+    ctx.fillStyle = '#3a5a70';
+    ctx.font = '10px Space Mono';
+    ctx.textAlign = 'right';
+    ctx.fillText((maxVal*(1-i/4)).toFixed(2), pad.l - 8, y+4);
+  }
+
+  // Lines and dots
+  clones.forEach((clone) => {
+    ctx.beginPath();
+    clone.values.forEach((val, ti) => {
+      const x = pad.l + (ti/(timepoints.length-1)) * cw;
+      const y = pad.t + ch * (1 - val/maxVal);
+      ti === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = clone.color;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = clone.color;
+    ctx.shadowBlur = 6;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Dots
+    clone.values.forEach((val, ti) => {
+      const x = pad.l + (ti/(timepoints.length-1)) * cw;
+      const y = pad.t + ch * (1 - val/maxVal);
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = clone.color; ctx.fill();
+    });
+  });
+
+  // X labels
+  timepoints.forEach((tp, ti) => {
+    const x = pad.l + (ti/(timepoints.length-1)) * cw;
+    ctx.fillStyle = '#6b8fa8';
+    ctx.font = '11px Space Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(tp, x, H - 15);
+  });
+
+  // Y axis label
+  ctx.fillStyle = '#3a5a70';
+  ctx.font = '10px Space Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText('Clonal Frequency (%)', 4, pad.t - 10);
+
+  // Legend
+  const legendX = pad.l + 8;
+  const legendY = pad.t + 8;
+  clones.forEach((clone, i) => {
+    const y = legendY + i * 16;
+    ctx.fillStyle = clone.color;
+    ctx.fillRect(legendX, y - 4, 10, 3);
+    ctx.font = '9px Space Mono';
+    ctx.textAlign = 'left';
+    ctx.fillText(clone.name, legendX + 14, y);
+  });
+}
+
+// ── UMAP — seeded pseudo-random for stable clusters ──
+function seededRandom(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 16807 + 0) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+
+let umapPointsCache = null;
+
+function generateUMAPPoints() {
+  if (umapPointsCache) return umapPointsCache;
+  const rng = seededRandom(42);
+  const clusters = [
+    { name:'CD8+ Effector', cx:0.25, cy:0.35, r:0.1, n:180, color:'#00d4ff' },
+    { name:'CD4+ Helper',   cx:0.55, cy:0.25, r:0.12, n:220, color:'#7b2fff' },
+    { name:'NK Cells',      cx:0.75, cy:0.6,  r:0.09, n:120, color:'#00ff9d' },
+    { name:'B Cells',       cx:0.4,  cy:0.7,  r:0.11, n:150, color:'#ff6b6b' },
+    { name:'Tregs',         cx:0.65, cy:0.42, r:0.07, n:80,  color:'#ffd93d' },
+    { name:'MDSC',          cx:0.2,  cy:0.65, r:0.08, n:90,  color:'#ff922b' },
+  ];
+  const result = clusters.map(cl => {
+    const pts = Array.from({length:cl.n}, () => {
+      const angle = rng()*Math.PI*2;
+      const rad = rng() * cl.r;
+      return { rx: cl.cx + Math.cos(angle)*rad, ry: cl.cy + Math.sin(angle)*rad };
+    });
+    return { ...cl, pts };
+  });
+  umapPointsCache = result;
+  return result;
+}
+
+function drawUMAP() {
+  const canvas = document.getElementById('umap-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = 400 * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = canvas.offsetWidth, H = 400;
+  ctx.clearRect(0,0,W,H);
+
+  const clusters = generateUMAPPoints();
+
+  clusters.forEach(cl => {
+    cl.pts.forEach(p => {
+      ctx.beginPath(); ctx.arc(p.rx * W, p.ry * H, 2.5, 0, Math.PI*2);
+      ctx.fillStyle = cl.color + 'aa';
+      ctx.shadowColor = cl.color;
+      ctx.shadowBlur = 3;
+      ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = cl.color;
+    ctx.font = 'bold 11px DM Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText(cl.name, cl.cx * W, cl.cy * H - cl.r * H - 6);
+  });
+
+  ctx.fillStyle = '#3a5a70';
+  ctx.font = '10px Space Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText('UMAP 1', W - 60, H - 10);
+  ctx.save();
+  ctx.translate(12, H/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('UMAP 2', 0, 0);
+  ctx.restore();
+}
+
+// ── REPERTOIRE DIVERSITY — Apheresis vs Product boxplots ──
+// Fixed synthetic data: each metric has n=12 samples per group
+// Product always shows lower diversity than Apheresis (expected biology)
+const REPERTOIRE_DATA = {
+  metrics: [
+    {
+      name: 'Shannon Entropy',
+      apheresis: { q1: 6.8, median: 7.4, q3: 7.9, whiskerLo: 5.9, whiskerHi: 8.6, outliers: [] },
+      product:   { q1: 3.2, median: 4.1, q3: 4.8, whiskerLo: 2.1, whiskerHi: 5.6, outliers: [1.5] },
+      maxY: 10
+    },
+    {
+      name: 'Clonality',
+      apheresis: { q1: 0.05, median: 0.08, q3: 0.12, whiskerLo: 0.02, whiskerHi: 0.16, outliers: [] },
+      product:   { q1: 0.22, median: 0.32, q3: 0.41, whiskerLo: 0.15, whiskerHi: 0.52, outliers: [0.61] },
+      maxY: 0.7,
+      inverted: true  // higher clonality = less diverse (product is higher)
+    },
+    {
+      name: 'Richness',
+      apheresis: { q1: 14200, median: 18500, q3: 22000, whiskerLo: 10500, whiskerHi: 26000, outliers: [] },
+      product:   { q1: 1800, median: 3200, q3: 5100, whiskerLo: 800, whiskerHi: 7200, outliers: [] },
+      maxY: 30000
+    },
+    {
+      name: 'D50',
+      apheresis: { q1: 2800, median: 4100, q3: 5400, whiskerLo: 1800, whiskerHi: 6800, outliers: [] },
+      product:   { q1: 120, median: 320, q3: 580, whiskerLo: 45, whiskerHi: 850, outliers: [1100] },
+      maxY: 8000
+    }
+  ]
+};
+
+function drawBoxplot(ctx, box, cx, halfW, plotTop, plotH, maxY) {
+  const toY = v => plotTop + plotH * (1 - v / maxY);
+
+  // Whisker line
+  ctx.beginPath();
+  ctx.moveTo(cx, toY(box.whiskerHi));
+  ctx.lineTo(cx, toY(box.whiskerLo));
+  ctx.strokeStyle = '#6b8fa8';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Whisker caps
+  const capW = halfW * 0.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - capW, toY(box.whiskerHi)); ctx.lineTo(cx + capW, toY(box.whiskerHi));
+  ctx.moveTo(cx - capW, toY(box.whiskerLo)); ctx.lineTo(cx + capW, toY(box.whiskerLo));
+  ctx.stroke();
+
+  // Box (IQR)
+  const boxTop = toY(box.q3);
+  const boxBot = toY(box.q1);
+  ctx.fillStyle = ctx._boxFill || 'rgba(0,212,255,0.15)';
+  ctx.fillRect(cx - halfW, boxTop, halfW * 2, boxBot - boxTop);
+  ctx.strokeStyle = ctx._boxStroke || '#00d4ff';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - halfW, boxTop, halfW * 2, boxBot - boxTop);
+
+  // Median
+  ctx.beginPath();
+  ctx.moveTo(cx - halfW, toY(box.median));
+  ctx.lineTo(cx + halfW, toY(box.median));
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Outliers
+  box.outliers.forEach(v => {
+    ctx.beginPath();
+    ctx.arc(cx, toY(v), 3, 0, Math.PI * 2);
+    ctx.fillStyle = ctx._boxStroke || '#00d4ff';
+    ctx.fill();
+  });
+}
+
+function drawRepertoire() {
+  const canvas = document.getElementById('repertoire-canvas');
+  const ctx = canvas.getContext('2d');
+  const canvasH = 380;
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = canvasH * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = canvas.offsetWidth, H = canvasH;
+  ctx.clearRect(0,0,W,H);
+
+  const { metrics } = REPERTOIRE_DATA;
+  const pad = { l: 10, r: 10, t: 25, b: 40 };
+  const panelW = (W - pad.l - pad.r) / metrics.length;
+  const plotH = H - pad.t - pad.b;
+
+  metrics.forEach((metric, mi) => {
+    const px = pad.l + mi * panelW;
+    const plotL = px + 15;
+    const plotR = px + panelW - 10;
+    const plotW = plotR - plotL;
+    const plotTop = pad.t;
+
+    // Panel separator
+    if (mi > 0) {
+      ctx.strokeStyle = 'rgba(26,46,66,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(px, pad.t); ctx.lineTo(px, H - pad.b); ctx.stroke();
+    }
+
+    // Y-axis grid (4 ticks)
+    for (let i = 0; i <= 4; i++) {
+      const y = plotTop + plotH * (i / 4);
+      ctx.strokeStyle = 'rgba(26,46,66,0.5)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(plotL, y); ctx.lineTo(plotR, y); ctx.stroke();
+      // Y tick labels
+      const val = metric.maxY * (1 - i / 4);
+      ctx.fillStyle = '#3a5a70';
+      ctx.font = '8px Space Mono';
+      ctx.textAlign = 'right';
+      let label = val >= 1000 ? (val/1000).toFixed(0) + 'k' : val < 1 ? val.toFixed(2) : val.toFixed(1);
+      ctx.fillText(label, plotL - 3, y + 3);
+    }
+
+    // Metric name at top
+    ctx.fillStyle = '#6b8fa8';
+    ctx.font = 'bold 10px DM Sans';
+    ctx.textAlign = 'center';
+    ctx.fillText(metric.name, plotL + plotW / 2, pad.t - 8);
+
+    // Apheresis boxplot (left)
+    const boxW = Math.min(plotW * 0.22, 28);
+    const aph_cx = plotL + plotW * 0.3;
+    ctx._boxFill = 'rgba(0,212,255,0.15)';
+    ctx._boxStroke = '#00d4ff';
+    drawBoxplot(ctx, metric.apheresis, aph_cx, boxW, plotTop, plotH, metric.maxY);
+
+    // Product boxplot (right)
+    const prod_cx = plotL + plotW * 0.7;
+    ctx._boxFill = 'rgba(123,47,255,0.15)';
+    ctx._boxStroke = '#7b2fff';
+    drawBoxplot(ctx, metric.product, prod_cx, boxW, plotTop, plotH, metric.maxY);
+
+    // X-axis labels
+    ctx.fillStyle = '#00d4ff';
+    ctx.font = '9px Space Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('Aph', aph_cx, H - pad.b + 16);
+    ctx.fillStyle = '#7b2fff';
+    ctx.fillText('Prod', prod_cx, H - pad.b + 16);
+  });
+
+  // Clean up custom props
+  delete ctx._boxFill;
+  delete ctx._boxStroke;
+}
+
+// Init first tab
+window.addEventListener('load', () => {
+  drawClonal();
+});
+
+window.addEventListener('resize', () => {
+  drawClonal();
+});
+
+// ── COPY EMAIL TO CLIPBOARD ──
+function copyEmail() {
+  navigator.clipboard.writeText('jluthy123@gmail.com').then(() => {
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = 'jluthy123@gmail.com';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2500);
+  });
+}
+</script>
+</body>
+</html>

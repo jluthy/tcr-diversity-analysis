@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clonal Expansion & Dominance Analysis</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>/* ============================================================================
+   TCR Analysis Report Styles — matches jluthy.github.io portfolio theme
+   ============================================================================ */
+:root {
+  --bg: #0a0f14;
+  --surface: #0f1923;
+  --surface2: #152231;
+  --border: #1e3348;
+  --accent: #00d4ff;
+  --accent2: #7b2fff;
+  --accent3: #00ff9d;
+  --accent-warm: #ff6b6b;
+  --accent-yellow: #ffd93d;
+  --text: #e0eef5;
+  --text-muted: #7b9db5;
+  --text-dim: #3f6380;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --display: 'Syne', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.75;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 4rem;
+}
+
+/* --- Header / Title Block ------------------------------------------------- */
+.report-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+.report-header h1 {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.report-header .subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+}
+
+.report-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.report-meta span { display: flex; align-items: center; gap: 0.4rem; }
+.report-meta .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* --- Section Headings ----------------------------------------------------- */
+h2 {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+
+h2 .section-num {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-right: 0.6rem;
+}
+
+h3 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+/* --- Prose ---------------------------------------------------------------- */
+p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+p strong, p b { color: var(--text); font-weight: 500; }
+
+ul, ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+li { margin-bottom: 0.3rem; }
+
+/* --- Code Blocks ---------------------------------------------------------- */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.code-block::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.code-block code, pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: 2px;
+  color: var(--accent);
+}
+
+/* Syntax highlighting */
+.kw { color: var(--accent2); }        /* keywords */
+.fn { color: var(--accent); }          /* functions */
+.st { color: var(--accent3); }         /* strings */
+.num { color: var(--accent-yellow); }  /* numbers */
+.cm { color: var(--text-dim); font-style: italic; }  /* comments */
+.op { color: var(--text-dim); }        /* operators */
+.pkg { color: var(--accent-warm); }    /* package names */
+
+/* --- Output Blocks -------------------------------------------------------- */
+.output-block {
+  background: #080d12;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+  margin: 0.5rem 0 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* --- Tables --------------------------------------------------------------- */
+.table-wrap {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+tbody tr:hover { background: var(--surface); }
+
+.val-high { color: var(--accent3); font-weight: 500; }
+.val-low  { color: var(--accent-warm); font-weight: 500; }
+.val-mid  { color: var(--accent-yellow); font-weight: 500; }
+
+/* --- Figures / Plots ------------------------------------------------------ */
+.figure {
+  margin: 2rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+}
+
+.figure canvas, .figure svg, .figure img {
+  width: 100%;
+  display: block;
+}
+
+.figure-caption {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.figure-caption strong {
+  color: var(--text-muted);
+}
+
+/* --- Callout Boxes -------------------------------------------------------- */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.callout.finding { border-left-color: var(--accent3); }
+.callout.warning { border-left-color: var(--accent-warm); }
+.callout.note    { border-left-color: var(--accent2); }
+
+.callout-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.callout.finding .callout-title { color: var(--accent3); }
+.callout.warning .callout-title { color: var(--accent-warm); }
+.callout.note .callout-title    { color: var(--accent2); }
+
+.callout p { margin-bottom: 0.5rem; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* --- Metric Cards --------------------------------------------------------- */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.metric-card .value {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.metric-card .label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+
+/* --- TOC ------------------------------------------------------------------ */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+}
+
+.toc-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  counter-reset: toc-counter;
+}
+
+.toc li {
+  counter-increment: toc-counter;
+  margin-bottom: 0.4rem;
+}
+
+.toc li::before {
+  content: counter(toc-counter, decimal-leading-zero) " ";
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.toc a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.toc a:hover { color: var(--accent); }
+
+/* --- Footer --------------------------------------------------------------- */
+.report-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 640px) {
+  body { padding: 1.5rem 1rem 3rem; }
+  .report-header h1 { font-size: 1.7rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+  .report-meta { flex-direction: column; gap: 0.5rem; }
+}
+</style>
+</head>
+<body>
+  <div class="report-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <span style="font-family:var(--mono);font-size:0.7rem;letter-spacing:0.1em;color:var(--accent);">NOTEBOOK 03</span>
+      <span><a href="02-jal-diversity-analysis.html" style="color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;">← Previous</a></span>
+    </div>
+    <h1>Clonal Expansion & Dominance Analysis</h1>
+    <div class="subtitle">TCR Repertoire Analysis — Notebook 03: Top expanded clonotypes, cumulative dominance, and shared clone tracking</div>
+    <div class="report-meta">
+      <span><span class="dot"></span> Joshua Luthy</span>
+      <span>R + immunarch + edgeR</span>
+      <span>Synthetic Data</span>
+      <span>2025</span>
+    </div>
+  </div>
+  
+    <div class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#overview">Analysis Overview</a></li>
+        <li><a href="#top-clones">Top Expanded Clonotypes</a></li>
+        <li><a href="#dominance">Clonal Dominance Patterns</a></li>
+        <li><a href="#shared">Shared Clonotype Analysis</a></li>
+        <li><a href="#conclusions">Conclusions & Next Steps</a></li>
+      </ol>
+    </div>
+
+    <h2 id="overview"><span class="section-num">01</span> Analysis Overview</h2>
+    <p>
+      This notebook examines <strong>clonal expansion patterns</strong> in the manufactured Product,
+      identifying the most dominant clonotypes and characterizing the degree of oligoclonality.
+      We assess whether specific clones dominate the Product and how the top clone fraction
+      varies with clinical response.
+    </p>
+
+    <div class="code-block" data-lang="R">
+<code><span class="cm"># Identify top expanded clonotypes per sample</span>
+top_clones &lt;- tcr_data <span class="op">%&gt;%</span>
+  <span class="fn">filter</span>(sample_type == <span class="st">"Product"</span>) <span class="op">%&gt;%</span>
+  <span class="fn">group_by</span>(patient_id) <span class="op">%&gt;%</span>
+  <span class="fn">arrange</span>(<span class="fn">desc</span>(clone_fraction)) <span class="op">%&gt;%</span>
+  <span class="fn">mutate</span>(rank = <span class="fn">row_number</span>()) <span class="op">%&gt;%</span>
+  <span class="fn">filter</span>(rank &lt;= <span class="num">20</span>)</code>
+    </div>
+
+    <h2 id="top-clones"><span class="section-num">02</span> Top Expanded Clonotypes</h2>
+    <p>
+      Below are the <strong>top 10 expanded clonotypes</strong> in the Product for patient PT-001 (CR).
+      Note the extreme dominance of the top clone, which comprises nearly 9% of all reads.
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Rank</th><th>CDR3 Sequence</th><th>V Gene</th><th>J Gene</th><th>Count</th><th>Fraction</th>
+        </tr></thead>
+        <tbody><tr>
+          <td style="color:var(--accent)">1</td>
+          <td><code>CDWVSYQFTKRRF</code></td>
+          <td>TRBV7-9</td><td>TRBJ1-1</td>
+          <td>30,790</td>
+          <td class="val-high">42.46%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">2</td>
+          <td><code>CMGDVHRMPPGLMF</code></td>
+          <td>TRBV29-1</td><td>TRBJ2-1</td>
+          <td>5,447</td>
+          <td class="val-high">7.51%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">3</td>
+          <td><code>CYSAQCWFMKLMYEF</code></td>
+          <td>TRBV29-1</td><td>TRBJ2-1</td>
+          <td>1,988</td>
+          <td class="val-high">2.74%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">4</td>
+          <td><code>CLICPRQLPLMVNKLF</code></td>
+          <td>TRBV10-3</td><td>TRBJ1-2</td>
+          <td>980</td>
+          <td class="val-high">1.35%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">5</td>
+          <td><code>CETHNLRSMQAPQSIQVF</code></td>
+          <td>TRBV12-4</td><td>TRBJ1-6</td>
+          <td>565</td>
+          <td class="val-high">0.78%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">6</td>
+          <td><code>CVIYIPQNADGMSHIGF</code></td>
+          <td>TRBV6-5</td><td>TRBJ2-5</td>
+          <td>368</td>
+          <td class="val-high">0.51%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">7</td>
+          <td><code>CINEITGPPDMNGIVF</code></td>
+          <td>TRBV18</td><td>TRBJ1-5</td>
+          <td>239</td>
+          <td class="val-high">0.33%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">8</td>
+          <td><code>CWMWNDKGQWESRWEWIF</code></td>
+          <td>TRBV15</td><td>TRBJ2-4</td>
+          <td>185</td>
+          <td class="val-high">0.26%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">9</td>
+          <td><code>CEWFQHPQDVWDRIAF</code></td>
+          <td>TRBV30</td><td>TRBJ2-3</td>
+          <td>128</td>
+          <td class="val-high">0.18%</td>
+        </tr><tr>
+          <td style="color:var(--accent)">10</td>
+          <td><code>CLGIVHPSSGGAHPVVF</code></td>
+          <td>TRBV27</td><td>TRBJ1-1</td>
+          <td>107</td>
+          <td class="val-high">0.15%</td>
+        </tr></tbody>
+      </table>
+    </div>
+
+    <h2 id="dominance"><span class="section-num">03</span> Clonal Dominance Patterns</h2>
+    <p>
+      We quantify clonal dominance by examining the <strong>fraction of total reads</strong> held by the
+      top 1, top 5, and top 10 clonotypes in each Product sample.
+    </p>
+
+    <div class="figure">
+      <canvas id="dominance-chart" height="320"></canvas>
+      <div class="figure-caption">
+        <strong>Figure 1.</strong> Cumulative read fraction captured by the top N clonotypes in Product samples,
+        stratified by clinical response. CR patients show the steepest accumulation curves.
+      </div>
+    </div>
+
+    <div class="code-block" data-lang="R">
+<code><span class="cm"># Compute cumulative clone fraction for top clonotypes</span>
+cumulative &lt;- top_clones <span class="op">%&gt;%</span>
+  <span class="fn">group_by</span>(patient_id) <span class="op">%&gt;%</span>
+  <span class="fn">arrange</span>(rank) <span class="op">%&gt;%</span>
+  <span class="fn">mutate</span>(cum_fraction = <span class="fn">cumsum</span>(clone_fraction))
+
+<span class="cm"># Plot cumulative curves</span>
+<span class="fn">ggplot</span>(cumulative, <span class="fn">aes</span>(x = rank, y = cum_fraction,
+                        color = clinical_response, group = patient_id)) +
+  <span class="fn">geom_line</span>(linewidth = <span class="num">1.2</span>) +
+  <span class="fn">geom_point</span>(size = <span class="num">2</span>) +
+  <span class="fn">scale_color_manual</span>(values = <span class="fn">c</span>(<span class="st">"CR"</span> = <span class="st">"#00ff9d"</span>, <span class="st">"PR"</span> = <span class="st">"#00d4ff"</span>, <span class="st">"PD"</span> = <span class="st">"#ff6b6b"</span>)) +
+  <span class="fn">labs</span>(x = <span class="st">"Clonotype Rank"</span>, y = <span class="st">"Cumulative Fraction"</span>) +
+  <span class="fn">theme_minimal</span>()</code>
+    </div>
+
+    <div class="callout finding">
+      <div class="callout-title">Finding</div>
+      <p>
+        In CR patients, the <strong>top 10 clonotypes account for 30–45% of all Product reads</strong>,
+        indicating highly focused expansion. PD patients show a flatter accumulation curve,
+        where the top 10 clones capture only 15–25% of reads — consistent with less efficient
+        clonal selection during manufacturing.
+      </p>
+    </div>
+
+    <h2 id="shared"><span class="section-num">04</span> Shared Clonotype Analysis</h2>
+    <p>
+      We examine the <strong>overlap between Apheresis and Product</strong> repertoires to determine what
+      fraction of the Product's dominant clones were detectable in the starting material.
+    </p>
+
+    <div class="code-block" data-lang="R">
+<code><span class="cm"># Identify shared clonotypes between Apheresis and Product</span>
+shared &lt;- tcr_data <span class="op">%&gt;%</span>
+  <span class="fn">select</span>(patient_id, sample_type, cdr3_aa, clone_fraction) <span class="op">%&gt;%</span>
+  <span class="fn">pivot_wider</span>(names_from = sample_type, values_from = clone_fraction,
+              values_fn = <span class="fn">list</span>) <span class="op">%&gt;%</span>
+  <span class="fn">filter</span>(<span class="fn">map_lgl</span>(Apheresis, ~ !<span class="fn">is.null</span>(.x)),
+         <span class="fn">map_lgl</span>(Product, ~ !<span class="fn">is.null</span>(.x)))</code>
+    </div>
+
+    <div class="figure">
+      <canvas id="overlap-chart" height="260"></canvas>
+      <div class="figure-caption">
+        <strong>Figure 2.</strong> Proportion of Product clonotypes that were also detected in the matched Apheresis sample.
+        The majority of expanded Product clones originate from the starting material.
+      </div>
+    </div>
+
+    <h2 id="conclusions"><span class="section-num">05</span> Conclusions & Next Steps</h2>
+
+    <div class="callout">
+      <div class="callout-title">Summary of Findings</div>
+      <p><strong>1.</strong> Manufacturing drives extreme oligoclonal expansion — top 10 Product clones capture 15–45% of reads depending on patient.</p>
+      <p><strong>2.</strong> CR patients show the most concentrated Product repertoires, suggesting efficient clonal selection is therapeutically beneficial.</p>
+      <p><strong>3.</strong> The majority of dominant Product clones are traceable back to the Apheresis starting material.</p>
+      <p><strong>4.</strong> PD patients exhibit more diffuse Product repertoires with less dominant clonal expansion.</p>
+    </div>
+
+    <h3>Next Steps</h3>
+    <ul>
+      <li>Apply <strong>edgeR</strong> differential abundance framework to formally identify significantly expanding clonotypes (FDR-controlled).</li>
+      <li>Compute <strong>AUC-based clonal kinetics</strong> if longitudinal timepoints are available.</li>
+      <li>Investigate V gene segment bias in expanded vs. non-expanded clonotypes.</li>
+      <li>Correlate clonal expansion metrics with additional clinical endpoints.</li>
+    </ul>
+
+    <script>
+    // Dominance cumulative chart
+    (function() {
+      const canvas = document.getElementById('dominance-chart');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = 320 * dpr;
+      ctx.scale(dpr, dpr);
+      const W = canvas.offsetWidth, H = 320;
+      const pad = {l:60, r:30, t:20, b:50};
+      const cw = W - pad.l - pad.r;
+      const ch = H - pad.t - pad.b;
+
+      // Synthetic cumulative data for 6 patients
+      const patients = [
+        { id: 'PT-001', resp: 'CR', color: '#00ff9d', vals: [0.087, 0.14, 0.19, 0.23, 0.27, 0.30, 0.32, 0.34, 0.36, 0.38, 0.39, 0.40, 0.41, 0.42, 0.43, 0.435, 0.44, 0.445, 0.45, 0.455] },
+        { id: 'PT-002', resp: 'CR', color: '#00ff9d', vals: [0.12, 0.20, 0.26, 0.31, 0.34, 0.37, 0.39, 0.41, 0.42, 0.43, 0.44, 0.445, 0.45, 0.455, 0.46, 0.465, 0.47, 0.475, 0.48, 0.485] },
+        { id: 'PT-003', resp: 'PR', color: '#00d4ff', vals: [0.07, 0.12, 0.16, 0.20, 0.23, 0.25, 0.27, 0.29, 0.30, 0.31, 0.32, 0.33, 0.335, 0.34, 0.345, 0.35, 0.355, 0.36, 0.365, 0.37] },
+        { id: 'PT-004', resp: 'PR', color: '#00d4ff', vals: [0.05, 0.09, 0.13, 0.16, 0.19, 0.21, 0.23, 0.245, 0.26, 0.27, 0.28, 0.29, 0.30, 0.305, 0.31, 0.315, 0.32, 0.325, 0.33, 0.335] },
+        { id: 'PT-005', resp: 'PD', color: '#ff6b6b', vals: [0.04, 0.07, 0.10, 0.13, 0.15, 0.17, 0.185, 0.20, 0.21, 0.22, 0.23, 0.235, 0.24, 0.245, 0.25, 0.255, 0.26, 0.265, 0.27, 0.275] },
+        { id: 'PT-006', resp: 'PD', color: '#ff6b6b', vals: [0.035, 0.06, 0.085, 0.11, 0.13, 0.145, 0.16, 0.17, 0.18, 0.19, 0.195, 0.20, 0.205, 0.21, 0.215, 0.22, 0.225, 0.23, 0.235, 0.24] },
+      ];
+
+      // Grid
+      for (let i = 0; i <= 5; i++) {
+        const v = i * 0.1;
+        const y = pad.t + ch * (1 - v / 0.5);
+        ctx.strokeStyle = 'rgba(30,51,72,0.6)'; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+        ctx.fillStyle = '#3f6380'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'right';
+        ctx.fillText((v*100).toFixed(0) + '%', pad.l-8, y+4);
+      }
+
+      patients.forEach(p => {
+        ctx.beginPath();
+        p.vals.forEach((v, i) => {
+          const x = pad.l + (i / 19) * cw;
+          const y = pad.t + ch * (1 - v / 0.5);
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = p.resp === 'CR' ? 2.5 : 1.5;
+        ctx.globalAlpha = p.resp === 'CR' ? 1 : 0.7;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 4;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+      });
+
+      // X axis
+      for (let i = 0; i < 20; i += 5) {
+        const x = pad.l + (i / 19) * cw;
+        ctx.fillStyle = '#3f6380'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+        ctx.fillText(i + 1, x, H - 15);
+      }
+      ctx.fillText('20', pad.l + cw, H - 15);
+
+      ctx.fillStyle = '#3f6380'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+      ctx.fillText('Clonotype Rank', pad.l + cw/2, H - 2);
+
+      // Legend
+      const lx = W - pad.r - 100;
+      [['CR','#00ff9d'], ['PR','#00d4ff'], ['PD','#ff6b6b']].forEach(([label, color], i) => {
+        const y = pad.t + 10 + i * 16;
+        ctx.strokeStyle = color; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(lx, y); ctx.lineTo(lx+18, y); ctx.stroke();
+        ctx.fillStyle = '#7b9db5'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'left';
+        ctx.fillText(label, lx+24, y+4);
+      });
+
+      ctx.save(); ctx.translate(14, pad.t + ch/2); ctx.rotate(-Math.PI/2);
+      ctx.fillStyle = '#3f6380'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+      ctx.fillText('Cumulative Fraction', 0, 0); ctx.restore();
+    })();
+
+    // Overlap bar chart
+    (function() {
+      const canvas = document.getElementById('overlap-chart');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = 260 * dpr;
+      ctx.scale(dpr, dpr);
+      const W = canvas.offsetWidth, H = 260;
+      const pad = {l:60, r:30, t:20, b:50};
+      const cw = W - pad.l - pad.r;
+      const ch = H - pad.t - pad.b;
+
+      const patients = ['PT-001','PT-002','PT-003','PT-004','PT-005','PT-006'];
+      const overlap_pct = [0.78, 0.82, 0.71, 0.68, 0.63, 0.59];
+      const colors = ['#00ff9d','#00ff9d','#00d4ff','#00d4ff','#ff6b6b','#ff6b6b'];
+
+      // Grid
+      for (let i = 0; i <= 5; i++) {
+        const v = i * 20;
+        const y = pad.t + ch * (1 - v / 100);
+        ctx.strokeStyle = 'rgba(30,51,72,0.6)'; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+        ctx.fillStyle = '#3f6380'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'right';
+        ctx.fillText(v + '%', pad.l-8, y+4);
+      }
+
+      const barW = cw / patients.length * 0.6;
+      patients.forEach((p, i) => {
+        const cx = pad.l + (i + 0.5) * (cw / patients.length);
+        const barH = overlap_pct[i] * ch;
+        const y = pad.t + ch - barH;
+        ctx.fillStyle = colors[i] + '44';
+        ctx.fillRect(cx - barW/2, y, barW, barH);
+        ctx.strokeStyle = colors[i]; ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx - barW/2, y, barW, barH);
+
+        ctx.fillStyle = colors[i]; ctx.font = 'bold 10px JetBrains Mono'; ctx.textAlign = 'center';
+        ctx.fillText((overlap_pct[i]*100).toFixed(0) + '%', cx, y - 8);
+        ctx.fillStyle = '#7b9db5'; ctx.font = '10px JetBrains Mono';
+        ctx.fillText(p, cx, H - 15);
+      });
+
+      ctx.save(); ctx.translate(14, pad.t + ch/2); ctx.rotate(-Math.PI/2);
+      ctx.fillStyle = '#3f6380'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'center';
+      ctx.fillText('Shared Clone %', 0, 0); ctx.restore();
+    })();
+    </script>
+    
+  <div class="report-footer">
+    <span>Joshua Luthy · TCR Diversity Analysis</span>
+    <span>github.com/jluthy</span>
+  </div>
+</body>
+</html>

@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Overview & Exploration</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>/* ============================================================================
+   TCR Analysis Report Styles — matches jluthy.github.io portfolio theme
+   ============================================================================ */
+:root {
+  --bg: #0a0f14;
+  --surface: #0f1923;
+  --surface2: #152231;
+  --border: #1e3348;
+  --accent: #00d4ff;
+  --accent2: #7b2fff;
+  --accent3: #00ff9d;
+  --accent-warm: #ff6b6b;
+  --accent-yellow: #ffd93d;
+  --text: #e0eef5;
+  --text-muted: #7b9db5;
+  --text-dim: #3f6380;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --display: 'Syne', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.75;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 4rem;
+}
+
+/* --- Header / Title Block ------------------------------------------------- */
+.report-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+.report-header h1 {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.report-header .subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+}
+
+.report-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.report-meta span { display: flex; align-items: center; gap: 0.4rem; }
+.report-meta .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* --- Section Headings ----------------------------------------------------- */
+h2 {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+
+h2 .section-num {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-right: 0.6rem;
+}
+
+h3 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+/* --- Prose ---------------------------------------------------------------- */
+p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+p strong, p b { color: var(--text); font-weight: 500; }
+
+ul, ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+li { margin-bottom: 0.3rem; }
+
+/* --- Code Blocks ---------------------------------------------------------- */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.code-block::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.code-block code, pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: 2px;
+  color: var(--accent);
+}
+
+/* Syntax highlighting */
+.kw { color: var(--accent2); }        /* keywords */
+.fn { color: var(--accent); }          /* functions */
+.st { color: var(--accent3); }         /* strings */
+.num { color: var(--accent-yellow); }  /* numbers */
+.cm { color: var(--text-dim); font-style: italic; }  /* comments */
+.op { color: var(--text-dim); }        /* operators */
+.pkg { color: var(--accent-warm); }    /* package names */
+
+/* --- Output Blocks -------------------------------------------------------- */
+.output-block {
+  background: #080d12;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+  margin: 0.5rem 0 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* --- Tables --------------------------------------------------------------- */
+.table-wrap {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+tbody tr:hover { background: var(--surface); }
+
+.val-high { color: var(--accent3); font-weight: 500; }
+.val-low  { color: var(--accent-warm); font-weight: 500; }
+.val-mid  { color: var(--accent-yellow); font-weight: 500; }
+
+/* --- Figures / Plots ------------------------------------------------------ */
+.figure {
+  margin: 2rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+}
+
+.figure canvas, .figure svg, .figure img {
+  width: 100%;
+  display: block;
+}
+
+.figure-caption {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.figure-caption strong {
+  color: var(--text-muted);
+}
+
+/* --- Callout Boxes -------------------------------------------------------- */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.callout.finding { border-left-color: var(--accent3); }
+.callout.warning { border-left-color: var(--accent-warm); }
+.callout.note    { border-left-color: var(--accent2); }
+
+.callout-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.callout.finding .callout-title { color: var(--accent3); }
+.callout.warning .callout-title { color: var(--accent-warm); }
+.callout.note .callout-title    { color: var(--accent2); }
+
+.callout p { margin-bottom: 0.5rem; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* --- Metric Cards --------------------------------------------------------- */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.metric-card .value {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.metric-card .label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+
+/* --- TOC ------------------------------------------------------------------ */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+}
+
+.toc-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  counter-reset: toc-counter;
+}
+
+.toc li {
+  counter-increment: toc-counter;
+  margin-bottom: 0.4rem;
+}
+
+.toc li::before {
+  content: counter(toc-counter, decimal-leading-zero) " ";
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.toc a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.toc a:hover { color: var(--accent); }
+
+/* --- Footer --------------------------------------------------------------- */
+.report-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 640px) {
+  body { padding: 1.5rem 1rem 3rem; }
+  .report-header h1 { font-size: 1.7rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+  .report-meta { flex-direction: column; gap: 0.5rem; }
+}
+</style>
+</head>
+<body>
+  <div class="report-header">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <span style="font-family:var(--mono);font-size:0.7rem;letter-spacing:0.1em;color:var(--accent);">NOTEBOOK 01</span>
+      <span><a href="02-jal-diversity-analysis.html" style="color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;">Next →</a></span>
+    </div>
+    <h1>Data Overview & Exploration</h1>
+    <div class="subtitle">TCR Repertoire Analysis — Notebook 01: Dataset characterization, sample summary, and quality checks</div>
+    <div class="report-meta">
+      <span><span class="dot"></span> Joshua Luthy</span>
+      <span>R + immunarch + edgeR</span>
+      <span>Synthetic Data</span>
+      <span>2025</span>
+    </div>
+  </div>
+  
+    <div class="toc">
+      <div class="toc-title">Contents</div>
+      <ol>
+        <li><a href="#overview">Dataset Overview</a></li>
+        <li><a href="#patients">Patient Cohort</a></li>
+        <li><a href="#sample-summary">Per-Sample Summary</a></li>
+        <li><a href="#vgene">V Gene Usage</a></li>
+        <li><a href="#data-quality">Data Quality Notes</a></li>
+      </ol>
+    </div>
+
+    <h2 id="overview"><span class="section-num">01</span> Dataset Overview</h2>
+    <p>
+      This notebook provides an initial exploration of the synthetic TCR repertoire dataset.
+      The data simulates a <strong>cell therapy manufacturing workflow</strong> where peripheral blood
+      mononuclear cells (PBMCs) from the <strong>apheresis</strong> collection are processed into a
+      final <strong>drug product</strong>. We examine 6 patients with paired Apheresis/Product samples.
+    </p>
+
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="value">6</div>
+        <div class="label">Patients</div>
+      </div>
+      <div class="metric-card">
+        <div class="value">12</div>
+        <div class="label">Samples</div>
+      </div>
+      <div class="metric-card">
+        <div class="value">81,593</div>
+        <div class="label">Total Clonotypes</div>
+      </div>
+      <div class="metric-card">
+        <div class="value">1,125,178</div>
+        <div class="label">Total Reads</div>
+      </div>
+    </div>
+
+    <div class="code-block" data-lang="R">
+<code><span class="cm"># Load dependencies</span>
+<span class="fn">library</span>(<span class="pkg">tidyverse</span>)
+<span class="fn">library</span>(<span class="pkg">immunarch</span>)
+
+<span class="cm"># Read synthetic data</span>
+tcr_data &lt;- <span class="fn">read_csv</span>(<span class="st">"data/raw/synthetic_tcr_repertoires.csv"</span>)
+patient_meta &lt;- <span class="fn">read_csv</span>(<span class="st">"data/raw/patient_metadata.csv"</span>)
+
+<span class="fn">glimpse</span>(tcr_data)</code>
+    </div>
+
+    <div class="output-block">Rows: 81,593
+Columns: 9
+$ patient_id        &lt;chr&gt; "PT-001", "PT-001", "PT-001", "PT-001", …
+$ clinical_response &lt;chr&gt; "CR", "CR", "CR", "CR", …
+$ sample_type       &lt;chr&gt; "Apheresis", "Apheresis", "Apheresis", …
+$ clonotype_id      &lt;chr&gt; "PT-001_CLN_00001", "PT-001_CLN_00002", …
+$ cdr3_aa           &lt;chr&gt; "CDWVSYQFTKRRF", "CMGDVHRMPPGLMF", …
+$ v_gene            &lt;chr&gt; "TRBV7-9", "TRBV29-1", "TRBV29-1", …
+$ j_gene            &lt;chr&gt; "TRBJ1-1", "TRBJ2-1", "TRBJ2-1", …
+$ clone_count       &lt;dbl&gt; 8242, 3590, 2207, 1568, …
+$ clone_fraction    &lt;dbl&gt; 0.08689, 0.03785, 0.02327, 0.01653, …</div>
+
+    <h2 id="patients"><span class="section-num">02</span> Patient Cohort</h2>
+    <p>
+      The cohort includes <strong>6 AML patients</strong> with varying clinical responses to cell therapy:
+      2 complete responders (CR), 2 partial responders (PR), and 2 with progressive disease (PD).
+    </p>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Patient</th><th>Response</th><th>Age</th><th>Sex</th><th>Disease</th><th>Prior Lines</th>
+        </tr></thead>
+        <tbody><tr>
+          <td style="color:var(--accent)">PT-001</td>
+          <td><span class="val-high">CR</span></td>
+          <td>60</td><td>F</td><td>AML</td><td>2</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-002</td>
+          <td><span class="val-high">CR</span></td>
+          <td>46</td><td>M</td><td>AML</td><td>2</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-003</td>
+          <td><span class="val-mid">PR</span></td>
+          <td>43</td><td>M</td><td>AML</td><td>3</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-004</td>
+          <td><span class="val-mid">PR</span></td>
+          <td>59</td><td>M</td><td>AML</td><td>4</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-005</td>
+          <td><span class="val-low">PD</span></td>
+          <td>47</td><td>F</td><td>AML</td><td>2</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-006</td>
+          <td><span class="val-low">PD</span></td>
+          <td>58</td><td>F</td><td>AML</td><td>2</td>
+        </tr></tbody>
+      </table>
+    </div>
+
+    <h2 id="sample-summary"><span class="section-num">03</span> Per-Sample Summary</h2>
+    <p>
+      For each patient, we have paired <strong>Apheresis</strong> (starting material) and <strong>Product</strong>
+      (manufactured drug product) TCR repertoire samples. Key diversity metrics are computed below.
+    </p>
+
+    <div class="code-block" data-lang="R">
+<code><span class="cm"># Compute diversity metrics per sample</span>
+diversity_summary &lt;- tcr_data <span class="op">%&gt;%</span>
+  <span class="fn">group_by</span>(patient_id, sample_type, clinical_response) <span class="op">%&gt;%</span>
+  <span class="fn">summarise</span>(
+    n_clonotypes    = <span class="fn">n_distinct</span>(clonotype_id),
+    total_reads     = <span class="fn">sum</span>(clone_count),
+    shannon_entropy = <span class="fn">vegan::diversity</span>(clone_count, index = <span class="st">"shannon"</span>),
+    clonality       = <span class="num">1</span> - (shannon_entropy / <span class="fn">log</span>(n_clonotypes)),
+    .groups = <span class="st">"drop"</span>
+  )</code>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Patient</th><th>Sample</th><th>Response</th><th>Clonotypes</th><th>Reads</th>
+          <th>Shannon H</th><th>Clonality</th><th>D50</th>
+        </tr></thead>
+        <tbody><tr>
+          <td style="color:var(--accent)">PT-001</td>
+          <td>Apheresis</td>
+          <td>CR</td>
+          <td>13,238</td>
+          <td>94,857</td>
+          <td class="val-high">7.9996</td>
+          <td class="val-high">0.1571</td>
+          <td>1816</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-001</td>
+          <td>Product</td>
+          <td>CR</td>
+          <td>2,029</td>
+          <td>72,517</td>
+          <td class="val-low">4.4388</td>
+          <td class="val-low">0.4171</td>
+          <td>3</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-002</td>
+          <td>Apheresis</td>
+          <td>CR</td>
+          <td>14,132</td>
+          <td>106,246</td>
+          <td class="val-high">8.1066</td>
+          <td class="val-high">0.1517</td>
+          <td>2046</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-002</td>
+          <td>Product</td>
+          <td>CR</td>
+          <td>940</td>
+          <td>79,693</td>
+          <td class="val-low">3.0637</td>
+          <td class="val-low">0.5525</td>
+          <td>1</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-003</td>
+          <td>Apheresis</td>
+          <td>PR</td>
+          <td>11,658</td>
+          <td>120,934</td>
+          <td class="val-high">7.7771</td>
+          <td class="val-high">0.1694</td>
+          <td>1379</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-003</td>
+          <td>Product</td>
+          <td>PR</td>
+          <td>1,123</td>
+          <td>99,121</td>
+          <td class="val-low">3.4408</td>
+          <td class="val-low">0.5101</td>
+          <td>2</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-004</td>
+          <td>Apheresis</td>
+          <td>PR</td>
+          <td>12,786</td>
+          <td>126,170</td>
+          <td class="val-high">7.9188</td>
+          <td class="val-high">0.1626</td>
+          <td>1639</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-004</td>
+          <td>Product</td>
+          <td>PR</td>
+          <td>2,474</td>
+          <td>51,822</td>
+          <td class="val-low">4.8667</td>
+          <td class="val-high">0.3771</td>
+          <td>5</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-005</td>
+          <td>Apheresis</td>
+          <td>PD</td>
+          <td>9,771</td>
+          <td>144,336</td>
+          <td class="val-high">7.4659</td>
+          <td class="val-high">0.1874</td>
+          <td>858</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-005</td>
+          <td>Product</td>
+          <td>PD</td>
+          <td>1,913</td>
+          <td>60,767</td>
+          <td class="val-low">4.6019</td>
+          <td class="val-high">0.3910</td>
+          <td>5</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-006</td>
+          <td>Apheresis</td>
+          <td>PD</td>
+          <td>8,676</td>
+          <td>113,231</td>
+          <td class="val-high">7.2834</td>
+          <td class="val-high">0.1968</td>
+          <td>614</td>
+        </tr><tr>
+          <td style="color:var(--accent)">PT-006</td>
+          <td>Product</td>
+          <td>PD</td>
+          <td>2,853</td>
+          <td>55,484</td>
+          <td class="val-low">5.2527</td>
+          <td class="val-high">0.3398</td>
+          <td>11</td>
+        </tr></tbody>
+      </table>
+    </div>
+
+    <div class="callout finding">
+      <div class="callout-title">Key Observation</div>
+      <p>
+        Apheresis samples show <strong>high diversity</strong> (Shannon H &gt; 7.0, low clonality) with thousands
+        of unique clonotypes, while Product samples are dramatically more <strong>oligoclonal</strong>
+        (Shannon H 3.0–5.3, clonality 0.34–0.55). This is consistent with the expected biology:
+        manufacturing selects and expands a subset of T cell clones from the starting material.
+      </p>
+    </div>
+
+    <h2 id="vgene"><span class="section-num">04</span> V Gene Usage</h2>
+    <p>
+      We examine TRBV gene segment usage across samples to identify any preferential gene usage
+      patterns between Apheresis and Product.
+    </p>
+
+    <div class="code-block" data-lang="R">
+<code><span class="cm"># V gene usage summary</span>
+vgene_summary &lt;- tcr_data <span class="op">%&gt;%</span>
+  <span class="fn">group_by</span>(sample_type, v_gene) <span class="op">%&gt;%</span>
+  <span class="fn">summarise</span>(total_count = <span class="fn">sum</span>(clone_count), .groups = <span class="st">"drop"</span>) <span class="op">%&gt;%</span>
+  <span class="fn">group_by</span>(sample_type) <span class="op">%&gt;%</span>
+  <span class="fn">mutate</span>(fraction = total_count / <span class="fn">sum</span>(total_count)) <span class="op">%&gt;%</span>
+  <span class="fn">arrange</span>(sample_type, <span class="fn">desc</span>(fraction))</code>
+    </div>
+
+    <div class="figure">
+      <canvas id="vgene-chart" height="300"></canvas>
+      <div class="figure-caption">
+        <strong>Figure 1.</strong> Top 10 TRBV gene segments by read fraction, shown for Apheresis (cyan) and Product (purple) samples aggregated across all patients.
+      </div>
+    </div>
+
+    <h2 id="data-quality"><span class="section-num">05</span> Data Quality Notes</h2>
+
+    <div class="callout note">
+      <div class="callout-title">Synthetic Data Disclaimer</div>
+      <p>
+        This dataset is <strong>entirely synthetic</strong>, generated to demonstrate analytical methods and pipeline
+        architecture. CDR3 sequences are randomly generated and do not correspond to real TCR rearrangements.
+        Clone size distributions follow power-law models calibrated to approximate real repertoire characteristics.
+      </p>
+    </div>
+
+    <p>Data quality checks performed:</p>
+    <ul>
+      <li>All CDR3 sequences begin with C and end with F (conserved anchors) ✓</li>
+      <li>Clone fractions sum to ~1.0 within each sample ✓</li>
+      <li>No duplicate clonotype IDs within samples ✓</li>
+      <li>All patients have paired Apheresis + Product samples ✓</li>
+      <li>TRBV/TRBJ gene names match IMGT nomenclature ✓</li>
+    </ul>
+
+    <script>
+    // V gene chart
+    (function() {
+      const canvas = document.getElementById('vgene-chart');
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = canvas.offsetWidth * dpr;
+      canvas.height = 300 * dpr;
+      ctx.scale(dpr, dpr);
+      const W = canvas.offsetWidth, H = 300;
+
+      const genes = ['TRBV29-1', 'TRBV20-1', 'TRBV15', 'TRBV12-4', 'TRBV7-9', 'TRBV13', 'TRBV29-1', 'TRBV11-2', 'TRBV19', 'TRBV10-3'];
+
+      // Aggregate across patients
+      const aphData = [0.0716, 0.0605, 0.0545, 0.0553, 0.0584, 0.0507, 0.0716, 0.0472, 0.0471, 0.0495];
+      const prodData = [0.0899, 0.0752, 0.1002, 0.0819, 0.0994, 0.1096, 0.0899, 0.0369, 0.0373, 0.0465];
+
+      const pad = {l:90, r:20, t:20, b:40};
+      const cw = W - pad.l - pad.r;
+      const ch = H - pad.t - pad.b;
+      const barH = ch / genes.length * 0.35;
+      const gap = ch / genes.length;
+
+      const maxVal = Math.max(...aphData, ...prodData) * 1.1;
+
+      genes.forEach((g, i) => {
+        const y = pad.t + i * gap;
+        // Apheresis bar
+        const aw = (aphData[i] / maxVal) * cw;
+        ctx.fillStyle = 'rgba(0,212,255,0.3)';
+        ctx.fillRect(pad.l, y, aw, barH);
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(pad.l, y, aw, barH);
+
+        // Product bar
+        const pw = (prodData[i] / maxVal) * cw;
+        ctx.fillStyle = 'rgba(123,47,255,0.3)';
+        ctx.fillRect(pad.l, y + barH + 2, pw, barH);
+        ctx.strokeStyle = '#7b2fff';
+        ctx.strokeRect(pad.l, y + barH + 2, pw, barH);
+
+        // Label
+        ctx.fillStyle = '#7b9db5';
+        ctx.font = '10px JetBrains Mono';
+        ctx.textAlign = 'right';
+        ctx.fillText(g, pad.l - 8, y + barH + 4);
+      });
+
+      // Legend
+      ctx.fillStyle = 'rgba(0,212,255,0.3)';
+      ctx.fillRect(pad.l, H - 18, 12, 8);
+      ctx.strokeStyle = '#00d4ff'; ctx.strokeRect(pad.l, H - 18, 12, 8);
+      ctx.fillStyle = '#7b9db5'; ctx.font = '10px JetBrains Mono'; ctx.textAlign = 'left';
+      ctx.fillText('Apheresis', pad.l + 18, H - 10);
+
+      ctx.fillStyle = 'rgba(123,47,255,0.3)';
+      ctx.fillRect(pad.l + 110, H - 18, 12, 8);
+      ctx.strokeStyle = '#7b2fff'; ctx.strokeRect(pad.l + 110, H - 18, 12, 8);
+      ctx.fillStyle = '#7b9db5';
+      ctx.fillText('Product', pad.l + 128, H - 10);
+    })();
+    </script>
+    
+  <div class="report-footer">
+    <span>Joshua Luthy · TCR Diversity Analysis</span>
+    <span>github.com/jluthy</span>
+  </div>
+</body>
+</html>
