@@ -1,0 +1,7 @@
+patient_id,clinical_response,age,sex,disease,prior_lines
+PT-001,CR,60,F,AML,2
+PT-002,CR,46,M,AML,2
+PT-003,PR,43,M,AML,3
+PT-004,PR,59,M,AML,4
+PT-005,PD,47,F,AML,2
+PT-006,PD,58,F,AML,2

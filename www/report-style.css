@@ -1,0 +1,376 @@
+/* ============================================================================
+   TCR Analysis Report Styles — matches jluthy.github.io portfolio theme
+   ============================================================================ */
+:root {
+  --bg: #0a0f14;
+  --surface: #0f1923;
+  --surface2: #152231;
+  --border: #1e3348;
+  --accent: #00d4ff;
+  --accent2: #7b2fff;
+  --accent3: #00ff9d;
+  --accent-warm: #ff6b6b;
+  --accent-yellow: #ffd93d;
+  --text: #e0eef5;
+  --text-muted: #7b9db5;
+  --text-dim: #3f6380;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --display: 'Syne', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.75;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 4rem;
+}
+
+/* --- Header / Title Block ------------------------------------------------- */
+.report-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+.report-header h1 {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.report-header .subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+}
+
+.report-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.report-meta span { display: flex; align-items: center; gap: 0.4rem; }
+.report-meta .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* --- Section Headings ----------------------------------------------------- */
+h2 {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+
+h2 .section-num {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-right: 0.6rem;
+}
+
+h3 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+/* --- Prose ---------------------------------------------------------------- */
+p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+p strong, p b { color: var(--text); font-weight: 500; }
+
+ul, ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+li { margin-bottom: 0.3rem; }
+
+/* --- Code Blocks ---------------------------------------------------------- */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.code-block::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.code-block code, pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: 2px;
+  color: var(--accent);
+}
+
+/* Syntax highlighting */
+.kw { color: var(--accent2); }        /* keywords */
+.fn { color: var(--accent); }          /* functions */
+.st { color: var(--accent3); }         /* strings */
+.num { color: var(--accent-yellow); }  /* numbers */
+.cm { color: var(--text-dim); font-style: italic; }  /* comments */
+.op { color: var(--text-dim); }        /* operators */
+.pkg { color: var(--accent-warm); }    /* package names */
+
+/* --- Output Blocks -------------------------------------------------------- */
+.output-block {
+  background: #080d12;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+  margin: 0.5rem 0 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* --- Tables --------------------------------------------------------------- */
+.table-wrap {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+tbody tr:hover { background: var(--surface); }
+
+.val-high { color: var(--accent3); font-weight: 500; }
+.val-low  { color: var(--accent-warm); font-weight: 500; }
+.val-mid  { color: var(--accent-yellow); font-weight: 500; }
+
+/* --- Figures / Plots ------------------------------------------------------ */
+.figure {
+  margin: 2rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+}
+
+.figure canvas, .figure svg, .figure img {
+  width: 100%;
+  display: block;
+}
+
+.figure-caption {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.figure-caption strong {
+  color: var(--text-muted);
+}
+
+/* --- Callout Boxes -------------------------------------------------------- */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.callout.finding { border-left-color: var(--accent3); }
+.callout.warning { border-left-color: var(--accent-warm); }
+.callout.note    { border-left-color: var(--accent2); }
+
+.callout-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.callout.finding .callout-title { color: var(--accent3); }
+.callout.warning .callout-title { color: var(--accent-warm); }
+.callout.note .callout-title    { color: var(--accent2); }
+
+.callout p { margin-bottom: 0.5rem; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* --- Metric Cards --------------------------------------------------------- */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.metric-card .value {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.metric-card .label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+
+/* --- TOC ------------------------------------------------------------------ */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+}
+
+.toc-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  counter-reset: toc-counter;
+}
+
+.toc li {
+  counter-increment: toc-counter;
+  margin-bottom: 0.4rem;
+}
+
+.toc li::before {
+  content: counter(toc-counter, decimal-leading-zero) " ";
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.toc a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.toc a:hover { color: var(--accent); }
+
+/* --- Footer --------------------------------------------------------------- */
+.report-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 640px) {
+  body { padding: 1.5rem 1rem 3rem; }
+  .report-header h1 { font-size: 1.7rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+  .report-meta { flex-direction: column; gap: 0.5rem; }
+}

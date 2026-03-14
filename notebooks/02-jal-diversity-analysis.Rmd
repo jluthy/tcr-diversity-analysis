@@ -1,0 +1,84 @@
+---
+title: "Diversity Analysis: Apheresis vs Product"
+subtitle: "TCR Repertoire Analysis — Notebook 02"
+author: "Joshua Luthy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: null
+    css: "../www/report-style.css"
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 6)
+library(tidyverse)
+```
+
+## Analysis Overview
+
+This notebook quantifies the **change in TCR repertoire diversity** from Apheresis
+to the manufactured drug Product. We compare multiple diversity indices and stratify
+by clinical response (CR, PR, PD).
+
+```{r load-data}
+diversity_df <- read_csv("../data/processed/diversity_metrics.csv")
+```
+
+## Shannon Entropy Comparison
+
+```{r shannon-test}
+aph_shannon <- diversity_df %>% filter(sample_type == "Apheresis") %>% pull(shannon_entropy)
+prod_shannon <- diversity_df %>% filter(sample_type == "Product") %>% pull(shannon_entropy)
+
+wilcox.test(aph_shannon, prod_shannon, paired = TRUE)
+```
+
+```{r shannon-plot}
+ggplot(diversity_df, aes(x = sample_type, y = shannon_entropy, fill = sample_type)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 3, alpha = 0.7) +
+  scale_fill_manual(values = c("Apheresis" = "#00d4ff", "Product" = "#7b2fff")) +
+  labs(y = "Shannon Entropy (H)", x = NULL, title = "Shannon Entropy: Apheresis vs Product") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Clonality Index
+
+```{r clonality-plot}
+ggplot(diversity_df, aes(x = sample_type, y = clonality, fill = sample_type)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(width = 0.1, size = 3, alpha = 0.7) +
+  scale_fill_manual(values = c("Apheresis" = "#00d4ff", "Product" = "#7b2fff")) +
+  labs(y = "Clonality (1 - H/log N)", x = NULL, title = "Clonality Index") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Repertoire Richness & D50
+
+```{r richness-table}
+diversity_df %>%
+  select(patient_id, sample_type, n_clonotypes, d50) %>%
+  pivot_wider(names_from = sample_type, values_from = c(n_clonotypes, d50)) %>%
+  mutate(fold_change = n_clonotypes_Apheresis / n_clonotypes_Product) %>%
+  knitr::kable(digits = 1, caption = "Richness and D50 comparison")
+```
+
+## Diversity by Clinical Response
+
+```{r response-plot}
+diversity_df %>%
+  filter(sample_type == "Product") %>%
+  ggplot(aes(x = clinical_response, y = shannon_entropy, fill = clinical_response)) +
+  geom_col(alpha = 0.5, width = 0.6) +
+  scale_fill_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  labs(y = "Shannon Entropy (H)", x = "Clinical Response",
+       title = "Product Diversity by Clinical Response") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```

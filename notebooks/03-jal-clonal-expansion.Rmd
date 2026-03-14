@@ -1,0 +1,88 @@
+---
+title: "Clonal Expansion & Dominance Analysis"
+subtitle: "TCR Repertoire Analysis — Notebook 03"
+author: "Joshua Luthy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: null
+    css: "../www/report-style.css"
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 6)
+library(tidyverse)
+```
+
+## Analysis Overview
+
+This notebook examines **clonal expansion patterns** in the manufactured Product,
+identifying the most dominant clonotypes and characterizing oligoclonality.
+
+```{r load-data}
+tcr_data <- read_csv("../data/raw/synthetic_tcr_repertoires.csv")
+top_clones <- read_csv("../data/processed/top_clonotypes.csv")
+```
+
+## Top Expanded Clonotypes
+
+```{r top-clones-table}
+top_clones %>%
+  filter(patient_id == "PT-001", sample_type == "Product") %>%
+  head(10) %>%
+  mutate(clone_fraction = scales::percent(clone_fraction, accuracy = 0.01)) %>%
+  knitr::kable(caption = "Top 10 expanded clonotypes — PT-001 (CR)")
+```
+
+## Clonal Dominance Patterns
+
+```{r cumulative-plot}
+cumulative <- top_clones %>%
+  filter(sample_type == "Product") %>%
+  group_by(patient_id) %>%
+  arrange(rank) %>%
+  mutate(cum_fraction = cumsum(clone_fraction))
+
+ggplot(cumulative, aes(x = rank, y = cum_fraction,
+                        color = clinical_response, group = patient_id)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  labs(x = "Clonotype Rank", y = "Cumulative Fraction",
+       color = "Response", title = "Cumulative Clonal Dominance in Product") +
+  theme_minimal()
+```
+
+## Shared Clonotype Analysis
+
+```{r shared-analysis}
+# Identify shared clonotypes between Apheresis and Product
+aph_clones <- tcr_data %>% filter(sample_type == "Apheresis") %>%
+  select(patient_id, cdr3_aa) %>% distinct()
+
+prod_clones <- tcr_data %>% filter(sample_type == "Product") %>%
+  select(patient_id, cdr3_aa) %>% distinct()
+
+shared <- inner_join(aph_clones, prod_clones, by = c("patient_id", "cdr3_aa"))
+
+overlap_summary <- prod_clones %>%
+  group_by(patient_id) %>%
+  summarise(
+    total_product = n(),
+    shared = sum(cdr3_aa %in% shared$cdr3_aa[shared$patient_id == patient_id[1]]),
+    pct_shared = shared / total_product * 100
+  )
+
+overlap_summary %>% knitr::kable(digits = 1, caption = "Apheresis-Product clonotype overlap")
+```
+
+## Conclusions
+
+1. Manufacturing drives extreme oligoclonal expansion.
+2. CR patients show the most concentrated Product repertoires.
+3. The majority of dominant Product clones are traceable to the Apheresis starting material.
+4. PD patients exhibit more diffuse Product repertoires.

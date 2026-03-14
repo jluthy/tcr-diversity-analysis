@@ -1,0 +1,83 @@
+---
+title: "Data Overview & Exploration"
+subtitle: "TCR Repertoire Analysis — Notebook 01"
+author: "Joshua Luthy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: null
+    css: "../www/report-style.css"
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE,
+                      fig.width = 10, fig.height = 6)
+library(tidyverse)
+```
+
+## Dataset Overview
+
+This notebook provides initial exploration of the synthetic TCR repertoire dataset.
+The data simulates a **cell therapy manufacturing workflow** where PBMCs from the
+**apheresis** collection are processed into a final **drug product**.
+
+```{r load-data}
+# Load synthetic data
+tcr_data <- read_csv("../data/raw/synthetic_tcr_repertoires.csv")
+patient_meta <- read_csv("../data/raw/patient_metadata.csv")
+
+glimpse(tcr_data)
+```
+
+## Patient Cohort
+
+```{r patient-table}
+patient_meta %>%
+  knitr::kable(caption = "Patient cohort summary")
+```
+
+## Per-Sample Summary
+
+```{r diversity-summary}
+diversity_summary <- tcr_data %>%
+  group_by(patient_id, sample_type, clinical_response) %>%
+  summarise(
+    n_clonotypes    = n_distinct(clonotype_id),
+    total_reads     = sum(clone_count),
+    shannon_entropy = vegan::diversity(clone_count, index = "shannon"),
+    clonality       = 1 - (shannon_entropy / log(n_clonotypes)),
+    .groups = "drop"
+  )
+
+diversity_summary %>%
+  knitr::kable(digits = 4, caption = "Diversity metrics per sample")
+```
+
+## V Gene Usage
+
+```{r vgene-usage, fig.height=8}
+vgene_summary <- tcr_data %>%
+  group_by(sample_type, v_gene) %>%
+  summarise(total_count = sum(clone_count), .groups = "drop") %>%
+  group_by(sample_type) %>%
+  mutate(fraction = total_count / sum(total_count)) %>%
+  slice_max(fraction, n = 10)
+
+ggplot(vgene_summary, aes(x = reorder(v_gene, fraction), y = fraction,
+                           fill = sample_type)) +
+  geom_col(position = "dodge", alpha = 0.8) +
+  coord_flip() +
+  scale_fill_manual(values = c("Apheresis" = "#00d4ff", "Product" = "#7b2fff")) +
+  labs(x = NULL, y = "Read Fraction", fill = "Sample Type",
+       title = "Top 10 TRBV Gene Segments") +
+  theme_minimal()
+```
+
+## Data Quality Notes
+
+> **Synthetic Data Disclaimer:** This dataset is entirely synthetic, generated to
+> demonstrate analytical methods. CDR3 sequences are randomly generated and do not
+> correspond to real TCR rearrangements.
