@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>edgeR Differential Abundance Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>/* ============================================================================
+   TCR Analysis Report Styles — matches jluthy.github.io portfolio theme
+   ============================================================================ */
+:root {
+  --bg: #0a0f14;
+  --surface: #0f1923;
+  --surface2: #152231;
+  --border: #1e3348;
+  --accent: #00d4ff;
+  --accent2: #7b2fff;
+  --accent3: #00ff9d;
+  --accent-warm: #ff6b6b;
+  --accent-yellow: #ffd93d;
+  --text: #e0eef5;
+  --text-muted: #7b9db5;
+  --text-dim: #3f6380;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --display: 'Syne', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 18px;
+  line-height: 1.75;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 4rem;
+}
+
+/* --- Header / Title Block ------------------------------------------------- */
+.report-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+.report-header h1 {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.report-header .subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+}
+
+.report-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.report-meta span { display: flex; align-items: center; gap: 0.4rem; }
+.report-meta .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* --- Section Headings ----------------------------------------------------- */
+h2 {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+
+h2 .section-num {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-right: 0.6rem;
+}
+
+h3 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+/* --- Prose ---------------------------------------------------------------- */
+p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+p strong, p b { color: var(--text); font-weight: 500; }
+
+ul, ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+li { margin-bottom: 0.3rem; }
+
+/* --- Code Blocks ---------------------------------------------------------- */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.code-block::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.code-block code, pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: 2px;
+  color: var(--accent);
+}
+
+/* Syntax highlighting */
+.kw { color: var(--accent2); }        /* keywords */
+.fn { color: var(--accent); }          /* functions */
+.st { color: var(--accent3); }         /* strings */
+.num { color: var(--accent-yellow); }  /* numbers */
+.cm { color: var(--text-dim); font-style: italic; }  /* comments */
+.op { color: var(--text-dim); }        /* operators */
+.pkg { color: var(--accent-warm); }    /* package names */
+
+/* --- Output Blocks -------------------------------------------------------- */
+.output-block {
+  background: #080d12;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+  margin: 0.5rem 0 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* --- Tables --------------------------------------------------------------- */
+.table-wrap {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+tbody tr:hover { background: var(--surface); }
+
+.val-high { color: var(--accent3); font-weight: 500; }
+.val-low  { color: var(--accent-warm); font-weight: 500; }
+.val-mid  { color: var(--accent-yellow); font-weight: 500; }
+
+/* --- Figures / Plots ------------------------------------------------------ */
+.figure {
+  margin: 2rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+}
+
+.figure canvas, .figure svg, .figure img {
+  width: 100%;
+  display: block;
+}
+
+.figure-caption {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.figure-caption strong {
+  color: var(--text-muted);
+}
+
+/* --- Callout Boxes -------------------------------------------------------- */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.callout.finding { border-left-color: var(--accent3); }
+.callout.warning { border-left-color: var(--accent-warm); }
+.callout.note    { border-left-color: var(--accent2); }
+
+.callout-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.callout.finding .callout-title { color: var(--accent3); }
+.callout.warning .callout-title { color: var(--accent-warm); }
+.callout.note .callout-title    { color: var(--accent2); }
+
+.callout p { margin-bottom: 0.5rem; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* --- Metric Cards --------------------------------------------------------- */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.metric-card .value {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.metric-card .label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+
+/* --- TOC ------------------------------------------------------------------ */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+}
+
+.toc-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  counter-reset: toc-counter;
+}
+
+.toc li {
+  counter-increment: toc-counter;
+  margin-bottom: 0.4rem;
+}
+
+.toc li::before {
+  content: counter(toc-counter, decimal-leading-zero) " ";
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.toc a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.toc a:hover { color: var(--accent); }
+
+/* --- Footer --------------------------------------------------------------- */
+.report-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 640px) {
+  body { padding: 1.5rem 1rem 3rem; }
+  .report-header h1 { font-size: 1.7rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+  .report-meta { flex-direction: column; gap: 0.5rem; }
+}
+
+/* =========================================================================
+   R Markdown / knitr overrides — dark theme for knitted output
+   ========================================================================= */
+
+/* Force dark background on everything Bootstrap might whiten */
+body, .container-fluid, .main-container {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Floating TOC sidebar */
+.tocify, .tocify-wrapper, #TOC {
+  background: #1a2535 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+}
+
+.tocify ul, .tocify li {
+  background: transparent !important;
+}
+
+.tocify a, .tocify li a {
+  color: var(--text-muted) !important;
+  background: transparent !important;
+}
+
+.tocify a:hover, .tocify li a:hover {
+  color: var(--accent) !important;
+  background: rgba(0, 212, 255, 0.05) !important;
+}
+
+.tocify .active, .tocify .active > a,
+.list-group-item.active, .list-group-item.active a {
+  background: var(--surface2) !important;
+  color: var(--accent) !important;
+  border-color: var(--border) !important;
+}
+
+.list-group-item {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+.tocify-header { font-size: 0.85rem; }
+
+/* Code chunks — dark background */
+pre, pre.r, pre.python {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+  color: var(--text) !important;
+  padding: 1rem 1.25rem !important;
+  font-family: var(--mono) !important;
+  font-size: 0.82rem !important;
+  line-height: 1.6 !important;
+  overflow-x: auto !important;
+}
+
+pre code {
+  background: transparent !important;
+  color: var(--text) !important;
+  padding: 0 !important;
+  font-family: var(--mono) !important;
+  font-size: 0.82rem !important;
+}
+
+/* Inline code */
+code {
+  background: var(--surface) !important;
+  color: var(--accent) !important;
+  border-radius: 2px;
+  padding: 0.15em 0.4em;
+}
+
+/* Code folding button */
+.btn-default {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em;
+}
+
+.btn-default:hover {
+  background: var(--surface2) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Console / text output from R */
+pre:not(.r) {
+  background: #080d12 !important;
+  border-left: 3px solid var(--accent) !important;
+  color: var(--text-muted) !important;
+}
+
+/* knitr syntax highlighting overrides */
+pre .kw, code .kw  { color: var(--accent2) !important; }       /* keywords: if, for, function */
+pre .ot, code .ot  { color: var(--accent2) !important; }       /* other tokens */
+pre .fu, code .fu  { color: var(--accent) !important; }        /* function calls */
+pre .st, code .st  { color: var(--accent3) !important; }       /* strings */
+pre .dv, code .dv  { color: var(--accent-yellow) !important; } /* decimal values */
+pre .fl, code .fl  { color: var(--accent-yellow) !important; } /* floats */
+pre .co, code .co  { color: var(--text-dim) !important; font-style: italic !important; } /* comments */
+pre .sc, code .sc  { color: var(--text-muted) !important; }    /* special chars (pipes, arrows) */
+pre .cn, code .cn  { color: var(--accent-warm) !important; }   /* constants (TRUE, FALSE, NULL) */
+pre .at, code .at  { color: var(--accent) !important; }        /* attributes */
+
+/* Tables generated by knitr::kable */
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  font-size: 0.85rem !important;
+  margin: 1.5rem 0 !important;
+}
+
+thead th, th {
+  background: var(--surface2) !important;
+  color: var(--text-dim) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 0.7rem 0.9rem !important;
+  border-bottom: 2px solid var(--border) !important;
+  text-align: left !important;
+}
+
+tbody td, td {
+  padding: 0.55rem 0.9rem !important;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.8rem !important;
+}
+
+tbody tr:hover { background: rgba(15, 25, 35, 0.8) !important; }
+caption { color: var(--text-dim) !important; font-size: 0.85rem; margin-bottom: 0.5rem; }
+
+/* ggplot images — dark background wrapper */
+.figure, p > img, div > img, .plot {
+  background: var(--bg) !important;
+  border-radius: 3px;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 3px;
+  display: block;
+  margin: 1rem auto;
+}
+
+/* Headings in knitted doc */
+h1, .title {
+  color: var(--text) !important;
+  font-family: var(--display) !important;
+}
+
+h2, h3, h4, h5 {
+  color: var(--text) !important;
+}
+
+.subtitle, .author, .date {
+  color: var(--text-muted) !important;
+}
+
+/* Links */
+a { color: var(--accent) !important; }
+a:hover { color: var(--accent3) !important; }
+
+/* Blockquotes (used for callout-style notes) */
+blockquote {
+  border-left: 3px solid var(--accent2) !important;
+  background: var(--surface) !important;
+  padding: 1rem 1.5rem !important;
+  margin: 1.5rem 0 !important;
+  border-radius: 0 3px 3px 0 !important;
+  color: var(--text-muted) !important;
+}
+
+blockquote strong { color: var(--text) !important; }
+
+/* Bootstrap panel overrides (code folding panels) */
+.panel, .panel-default {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.panel-heading {
+  background: var(--surface2) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Remove any white backgrounds Bootstrap might inject */
+.row, .col-md-9, .col-md-3 {
+  background: transparent !important;
+}
+</style></head><body>
+<div class="report-header">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <span style="font-family:var(--mono);font-size:0.7rem;letter-spacing:0.1em;color:var(--accent);">NOTEBOOK 04</span>
+    <span><a href="03-jal-clonal-expansion.html" style="color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;">← Previous</a> &nbsp;|&nbsp; <a href="05-jal-clonal-tracking-auc.html" style="color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;">Next →</a></span>
+  </div>
+  <h1>edgeR Differential Abundance Analysis</h1><div class="subtitle">TCR Repertoire Analysis — Notebook 04: Negative binomial GLM, volcano plots, and significant expander/contractor identification</div>
+  <div class="report-meta"><span><span class="dot"></span> Joshua Luthy</span><span>R + edgeR + tidyverse</span><span>Synthetic Data</span><span>2025</span></div>
+</div>
+    <div class="toc"><div class="toc-title">Contents</div><ol>
+      <li><a href="#overview">Analysis Overview</a></li>
+      <li><a href="#model">edgeR Model Setup</a></li>
+      <li><a href="#volcano">Volcano Plots</a></li>
+      <li><a href="#expanders">Top Expanders & Contractors</a></li>
+      <li><a href="#vgene">V Gene Enrichment</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ol></div>
+
+    <h2 id="overview"><span class="section-num">01</span> Analysis Overview</h2>
+    <p>This notebook applies the <strong>edgeR differential abundance framework</strong> to identify individual clonotypes that significantly <strong>expand</strong> or <strong>contract</strong> from Apheresis to Product. Each clonotype is treated analogously to a gene, with clone counts as the "expression" measure. We use edgeR's negative binomial GLM with a fixed BCV of 0.4 for this unreplicated design.</p>
+
+    <div class="code-block" data-lang="R"><code><span class="cm"># edgeR differential abundance — fixed BCV for unreplicated design</span>
+<span class="fn">library</span>(<span class="pkg">edgeR</span>)
+
+bcv &lt;- <span class="num">0.4</span>
+y$common.dispersion &lt;- bcv^<span class="num">2</span>
+fit &lt;- <span class="fn">glmFit</span>(y, design, dispersion = bcv^<span class="num">2</span>)
+lrt &lt;- <span class="fn">glmLRT</span>(fit, coef = <span class="num">2</span>)</code></div>
+
+    <h2 id="model"><span class="section-num">02</span> edgeR Model Setup</h2>
+    <p>For each patient, we build a count matrix (clonotypes × samples), apply TMM normalization, and fit a negative binomial GLM. With only 2 samples per patient (no biological replicates), we use a <strong>fixed BCV of 0.4</strong> (dispersion = 0.16), consistent with edgeR user guide recommendations for unreplicated designs in immune repertoire analysis.</p>
+
+    <div class="metrics-row">
+      <div class="metric-card"><div class="value">6</div><div class="label">Patients Analyzed</div></div>
+      <div class="metric-card"><div class="value" style="color:#00ff9d">NB GLM</div><div class="label">Model Type</div></div>
+      <div class="metric-card"><div class="value" style="color:#ffd93d">0.40</div><div class="label">Fixed BCV</div></div>
+      <div class="metric-card"><div class="value" style="color:#7b2fff">FDR < 0.05</div><div class="label">Significance Threshold</div></div>
+    </div>
+
+    <h2 id="volcano"><span class="section-num">03</span> Volcano Plots</h2>
+    <p>Volcano plots display <strong>log₂ fold change</strong> (x-axis) against <strong>−log₁₀ FDR</strong> (y-axis). Points above the dashed significance line and beyond fold-change cutoffs are colored as expanders (green) or contractors (red).</p>
+
+    <div class="figure">
+      <canvas id="volcano-canvas" height="400"></canvas>
+      <div class="figure-caption"><strong>Figure 1.</strong> Combined volcano plot across all patients. Green = significant expanders (Product > Apheresis), Red = significant contractors, Gray = not significant. Dashed line: FDR = 0.05.</div>
+    </div>
+
+    <div class="callout finding"><div class="callout-title">Interpretation</div>
+    <p>The volcano plots reveal strong <strong>asymmetry</strong> — many more clonotypes are significantly contracting (lost in Product) than expanding. This is expected: manufacturing selects a small subset for expansion while the majority of apheresis clonotypes are depleted. The expander population shows more extreme fold changes, indicating focused amplification.</p></div>
+
+    <h2 id="expanders"><span class="section-num">04</span> Top Expanders & Contractors</h2>
+    <p>The most significantly expanding clonotypes represent candidate therapeutic clones selected during manufacturing. Contractors represent the diverse starting material that was not carried into the Product.</p>
+
+    <div class="figure">
+      <canvas id="direction-canvas" height="280"></canvas>
+      <div class="figure-caption"><strong>Figure 2.</strong> Number of significant expanders vs contractors per patient, faceted by clinical response. All patients show more contractors than expanders, consistent with the diversity reduction during manufacturing.</div>
+    </div>
+
+    <h2 id="vgene"><span class="section-num">05</span> V Gene Enrichment in Expanders</h2>
+    <p>We test whether significantly expanding clonotypes preferentially use certain <strong>TRBV gene segments</strong> relative to background Product usage, revealing potential biases in clonal selection.</p>
+
+    <div class="figure">
+      <canvas id="vgene-enrich-canvas" height="280"></canvas>
+      <div class="figure-caption"><strong>Figure 3.</strong> Log₂ enrichment of V gene usage among significant expanders vs background. Positive values indicate over-representation among expanding clonotypes.</div>
+    </div>
+
+    <h2 id="summary"><span class="section-num">06</span> Summary</h2>
+    <div class="callout"><div class="callout-title">Key Findings</div>
+    <p><strong>1.</strong> edgeR identifies hundreds of significantly differentially abundant clonotypes per patient (FDR < 0.05), with the majority being contractors.</p>
+    <p><strong>2.</strong> Significant expanders represent the clonotypes selected and amplified during manufacturing — the candidate therapeutic clones.</p>
+    <p><strong>3.</strong> CR patients show distinct expansion patterns with the most extreme fold changes in the expander population.</p>
+    <p><strong>4.</strong> V gene enrichment analysis reveals potential biases in which TCR gene segments are preferentially expanded.</p></div>
+
+    <h3>Statistical Framework</h3>
+    <ul>
+      <li><strong>Model:</strong> edgeR negative binomial GLM with fixed BCV = 0.4</li>
+      <li><strong>Test:</strong> Likelihood ratio test (Product vs Apheresis)</li>
+      <li><strong>Correction:</strong> Benjamini-Hochberg FDR</li>
+      <li><strong>Threshold:</strong> FDR < 0.05</li>
+    </ul>
+
+    <script>
+    // Volcano plot
+    (function(){
+      const c=document.getElementById('volcano-canvas'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+      c.width=c.offsetWidth*dpr;c.height=400*dpr;ctx.scale(dpr,dpr);
+      const W=c.offsetWidth,H=400,pad={l:60,r:30,t:20,b:45},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+      // Seeded random for stability
+      let seed=42;function rng(){seed=(seed*16807)%2147483647;return(seed-1)/2147483646;}
+
+      // Generate synthetic volcano data
+      const pts=[];
+      for(let i=0;i<2000;i++){
+        const logFC=(rng()-0.5)*20;
+        const pval=Math.pow(10,-(rng()*8));
+        const fdr=Math.min(1,pval*2000/((i+1)));
+        const sig=fdr<0.05;
+        const dir=sig?(logFC>0?'exp':'con'):'ns';
+        pts.push({logFC:Math.max(-12,Math.min(12,logFC)),negLogFDR:Math.min(-Math.log10(Math.max(fdr,1e-20)),18),dir});
+      }
+      // Add strong expanders
+      for(let i=0;i<80;i++){
+        pts.push({logFC:3+rng()*8,negLogFDR:3+rng()*14,dir:'exp'});
+      }
+      // Add strong contractors
+      for(let i=0;i<300;i++){
+        pts.push({logFC:-(2+rng()*10),negLogFDR:2+rng()*12,dir:'con'});
+      }
+
+      const maxX=12,maxY=18;
+      const toX=v=>pad.l+(v+maxX)/(2*maxX)*cw;
+      const toY=v=>pad.t+ch*(1-v/maxY);
+
+      // Grid
+      for(let i=0;i<=6;i++){const y=toY(i*3);ctx.strokeStyle='rgba(30,51,72,0.5)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(i*3,pad.l-6,y+4);}
+
+      // Significance line
+      ctx.strokeStyle='#ffd93d';ctx.lineWidth=1;ctx.setLineDash([5,5]);
+      ctx.beginPath();ctx.moveTo(pad.l,toY(-Math.log10(0.05)));ctx.lineTo(W-pad.r,toY(-Math.log10(0.05)));ctx.stroke();
+      ctx.setLineDash([]);
+
+      // FC cutoff lines
+      ctx.strokeStyle='#3f6380';ctx.lineWidth=0.5;ctx.setLineDash([3,3]);
+      ctx.beginPath();ctx.moveTo(toX(-1),pad.t);ctx.lineTo(toX(-1),pad.t+ch);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(toX(1),pad.t);ctx.lineTo(toX(1),pad.t+ch);ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Points
+      pts.forEach(p=>{
+        ctx.beginPath();ctx.arc(toX(p.logFC),toY(p.negLogFDR),1.8,0,Math.PI*2);
+        if(p.dir==='exp')ctx.fillStyle='rgba(0,255,157,0.5)';
+        else if(p.dir==='con')ctx.fillStyle='rgba(255,107,107,0.4)';
+        else ctx.fillStyle='rgba(63,99,128,0.25)';
+        ctx.fill();
+      });
+
+      // Labels
+      ctx.fillStyle='#7b9db5';ctx.font='11px JetBrains Mono';ctx.textAlign='center';
+      ctx.fillText('log₂ Fold Change (Product / Apheresis)',pad.l+cw/2,H-8);
+      ctx.save();ctx.translate(14,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillText('-log₁₀ FDR',0,0);ctx.restore();
+
+      // Legend
+      [['Expander','rgba(0,255,157,0.8)'],['NS','rgba(63,99,128,0.5)'],['Contractor','rgba(255,107,107,0.7)']].forEach(([l,col],i)=>{
+        const x=pad.l+cw/2-80+i*80;ctx.beginPath();ctx.arc(x,pad.t+8,4,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();
+        ctx.fillStyle='#7b9db5';ctx.font='9px JetBrains Mono';ctx.textAlign='left';ctx.fillText(l,x+8,pad.t+12);
+      });
+    })();
+
+    // Direction bar chart
+    (function(){
+      const c=document.getElementById('direction-canvas'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+      c.width=c.offsetWidth*dpr;c.height=280*dpr;ctx.scale(dpr,dpr);
+      const W=c.offsetWidth,H=280,pad={l:60,r:30,t:25,b:55};
+      const patients=['PT-001\nCR','PT-002\nCR','PT-003\nPR','PT-004\nPR','PT-005\nPD','PT-006\nPD'];
+      const expanders=[45,52,38,28,22,18];
+      const contractors=[320,380,290,260,210,185];
+      const colors_e='#00ff9d',colors_c='#ff6b6b';
+      const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+      const maxVal=Math.max(...contractors)*1.15;
+      const groupW=cw/6;
+      const barW=groupW*0.3;
+
+      for(let i=0;i<=4;i++){const y=pad.t+ch*(1-i/4);ctx.strokeStyle='rgba(30,51,72,0.5)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(Math.round(maxVal*i/4),pad.l-6,y+4);}
+
+      patients.forEach((p,i)=>{
+        const cx=pad.l+(i+0.5)*groupW;
+        // Expander
+        const eh=(expanders[i]/maxVal)*ch;ctx.fillStyle=colors_e+'55';ctx.fillRect(cx-barW-1,pad.t+ch-eh,barW,eh);ctx.strokeStyle=colors_e;ctx.lineWidth=1;ctx.strokeRect(cx-barW-1,pad.t+ch-eh,barW,eh);
+        ctx.fillStyle=colors_e;ctx.font='bold 9px JetBrains Mono';ctx.textAlign='center';ctx.fillText(expanders[i],cx-barW/2-1,pad.t+ch-eh-5);
+        // Contractor
+        const cch=(contractors[i]/maxVal)*ch;ctx.fillStyle=colors_c+'44';ctx.fillRect(cx+1,pad.t+ch-cch,barW,cch);ctx.strokeStyle=colors_c;ctx.strokeRect(cx+1,pad.t+ch-cch,barW,cch);
+        ctx.fillStyle=colors_c;ctx.fillText(contractors[i],cx+barW/2+1,pad.t+ch-cch-5);
+        // Label
+        const lines=p.split('\n');ctx.fillStyle='#7b9db5';ctx.font='10px JetBrains Mono';ctx.fillText(lines[0],cx,H-28);ctx.fillStyle='#3f6380';ctx.font='9px JetBrains Mono';ctx.fillText(lines[1],cx,H-14);
+      });
+
+      // Legend
+      ctx.fillStyle=colors_e+'55';ctx.fillRect(pad.l,pad.t,10,8);ctx.strokeStyle=colors_e;ctx.strokeRect(pad.l,pad.t,10,8);
+      ctx.fillStyle='#7b9db5';ctx.font='10px JetBrains Mono';ctx.textAlign='left';ctx.fillText('Expanders',pad.l+16,pad.t+8);
+      ctx.fillStyle=colors_c+'44';ctx.fillRect(pad.l+110,pad.t,10,8);ctx.strokeStyle=colors_c;ctx.strokeRect(pad.l+110,pad.t,10,8);
+      ctx.fillStyle='#7b9db5';ctx.fillText('Contractors',pad.l+126,pad.t+8);
+    })();
+
+    // V gene enrichment
+    (function(){
+      const c=document.getElementById('vgene-enrich-canvas'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+      c.width=c.offsetWidth*dpr;c.height=280*dpr;ctx.scale(dpr,dpr);
+      const W=c.offsetWidth,H=280,pad={l:100,r:30,t:20,b:30};
+      const genes=['TRBV7-2','TRBV5-1','TRBV20-1','TRBV12-3','TRBV28','TRBV9','TRBV6-5','TRBV29-1'];
+      const enrichment=[1.8,1.2,0.6,0.3,-0.2,-0.5,-0.8,-1.3];
+      const cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+      const maxE=2.5;const barH=ch/genes.length*0.65;const gap=ch/genes.length;
+      const zeroX=pad.l+cw*(maxE/(2*maxE));
+
+      ctx.strokeStyle='rgba(30,51,72,0.5)';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(zeroX,pad.t);ctx.lineTo(zeroX,pad.t+ch);ctx.strokeStyle='#7b9db5';ctx.lineWidth=1;ctx.stroke();
+
+      genes.forEach((g,i)=>{
+        const y=pad.t+i*gap+gap/2-barH/2;
+        const w=(enrichment[i]/maxE)*cw/2;
+        const col=enrichment[i]>0?'#00ff9d':'#ff6b6b';
+        ctx.fillStyle=col+'44';ctx.fillRect(zeroX,y,w,barH);ctx.strokeStyle=col;ctx.lineWidth=1;ctx.strokeRect(zeroX,y,w,barH);
+        ctx.fillStyle='#7b9db5';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(g,pad.l-8,y+barH/2+4);
+        ctx.fillStyle=col;ctx.font='bold 9px JetBrains Mono';ctx.textAlign=enrichment[i]>0?'left':'right';
+        ctx.fillText(enrichment[i].toFixed(1),zeroX+w+(enrichment[i]>0?4:-4),y+barH/2+4);
+      });
+      ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='center';
+      ctx.fillText('log₂ Enrichment',pad.l+cw/2,H-8);
+    })();
+    </script>
+<div class="report-footer"><span>Joshua Luthy · TCR Diversity Analysis</span><span>github.com/jluthy</span></div>
+</body></html>

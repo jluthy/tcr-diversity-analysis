@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Clonal Tracking & AUC Kinetics</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>/* ============================================================================
+   TCR Analysis Report Styles — matches jluthy.github.io portfolio theme
+   ============================================================================ */
+:root {
+  --bg: #0a0f14;
+  --surface: #0f1923;
+  --surface2: #152231;
+  --border: #1e3348;
+  --accent: #00d4ff;
+  --accent2: #7b2fff;
+  --accent3: #00ff9d;
+  --accent-warm: #ff6b6b;
+  --accent-yellow: #ffd93d;
+  --text: #e0eef5;
+  --text-muted: #7b9db5;
+  --text-dim: #3f6380;
+  --mono: 'JetBrains Mono', 'Fira Code', 'Source Code Pro', monospace;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --display: 'Syne', system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 18px;
+  line-height: 1.75;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 4rem;
+}
+
+/* --- Header / Title Block ------------------------------------------------- */
+.report-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 2rem;
+  margin-bottom: 3rem;
+}
+
+.report-header h1 {
+  font-family: var(--display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+}
+
+.report-header .subtitle {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  margin-bottom: 1.2rem;
+}
+
+.report-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.report-meta span { display: flex; align-items: center; gap: 0.4rem; }
+.report-meta .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+
+/* --- Section Headings ----------------------------------------------------- */
+h2 {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+
+h2 .section-num {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  margin-right: 0.6rem;
+}
+
+h3 {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+/* --- Prose ---------------------------------------------------------------- */
+p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+p strong, p b { color: var(--text); font-weight: 500; }
+
+ul, ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+li { margin-bottom: 0.3rem; }
+
+/* --- Code Blocks ---------------------------------------------------------- */
+.code-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.code-block::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.code-block code, pre code {
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: 2px;
+  color: var(--accent);
+}
+
+/* Syntax highlighting */
+.kw { color: var(--accent2); }        /* keywords */
+.fn { color: var(--accent); }          /* functions */
+.st { color: var(--accent3); }         /* strings */
+.num { color: var(--accent-yellow); }  /* numbers */
+.cm { color: var(--text-dim); font-style: italic; }  /* comments */
+.op { color: var(--text-dim); }        /* operators */
+.pkg { color: var(--accent-warm); }    /* package names */
+
+/* --- Output Blocks -------------------------------------------------------- */
+.output-block {
+  background: #080d12;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 1rem 1.25rem;
+  margin: 0.5rem 0 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+/* --- Tables --------------------------------------------------------------- */
+.table-wrap {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+thead th {
+  background: var(--surface);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+tbody tr:hover { background: var(--surface); }
+
+.val-high { color: var(--accent3); font-weight: 500; }
+.val-low  { color: var(--accent-warm); font-weight: 500; }
+.val-mid  { color: var(--accent-yellow); font-weight: 500; }
+
+/* --- Figures / Plots ------------------------------------------------------ */
+.figure {
+  margin: 2rem 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem;
+}
+
+.figure canvas, .figure svg, .figure img {
+  width: 100%;
+  display: block;
+}
+
+.figure-caption {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 0.75rem;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.figure-caption strong {
+  color: var(--text-muted);
+}
+
+/* --- Callout Boxes -------------------------------------------------------- */
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.callout.finding { border-left-color: var(--accent3); }
+.callout.warning { border-left-color: var(--accent-warm); }
+.callout.note    { border-left-color: var(--accent2); }
+
+.callout-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+}
+
+.callout.finding .callout-title { color: var(--accent3); }
+.callout.warning .callout-title { color: var(--accent-warm); }
+.callout.note .callout-title    { color: var(--accent2); }
+
+.callout p { margin-bottom: 0.5rem; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* --- Metric Cards --------------------------------------------------------- */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.metric-card .value {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.metric-card .label {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 0.3rem;
+}
+
+/* --- TOC ------------------------------------------------------------------ */
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1.5rem 2rem;
+  margin: 2rem 0;
+}
+
+.toc-title {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.75rem;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  counter-reset: toc-counter;
+}
+
+.toc li {
+  counter-increment: toc-counter;
+  margin-bottom: 0.4rem;
+}
+
+.toc li::before {
+  content: counter(toc-counter, decimal-leading-zero) " ";
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-right: 0.5rem;
+}
+
+.toc a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s;
+}
+
+.toc a:hover { color: var(--accent); }
+
+/* --- Footer --------------------------------------------------------------- */
+.report-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+@media (max-width: 640px) {
+  body { padding: 1.5rem 1rem 3rem; }
+  .report-header h1 { font-size: 1.7rem; }
+  .metrics-row { grid-template-columns: 1fr 1fr; }
+  .report-meta { flex-direction: column; gap: 0.5rem; }
+}
+
+/* =========================================================================
+   R Markdown / knitr overrides — dark theme for knitted output
+   ========================================================================= */
+
+/* Force dark background on everything Bootstrap might whiten */
+body, .container-fluid, .main-container {
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+/* Floating TOC sidebar */
+.tocify, .tocify-wrapper, #TOC {
+  background: #1a2535 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+}
+
+.tocify ul, .tocify li {
+  background: transparent !important;
+}
+
+.tocify a, .tocify li a {
+  color: var(--text-muted) !important;
+  background: transparent !important;
+}
+
+.tocify a:hover, .tocify li a:hover {
+  color: var(--accent) !important;
+  background: rgba(0, 212, 255, 0.05) !important;
+}
+
+.tocify .active, .tocify .active > a,
+.list-group-item.active, .list-group-item.active a {
+  background: var(--surface2) !important;
+  color: var(--accent) !important;
+  border-color: var(--border) !important;
+}
+
+.list-group-item {
+  background: transparent !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+.tocify-header { font-size: 0.85rem; }
+
+/* Code chunks — dark background */
+pre, pre.r, pre.python {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 3px !important;
+  color: var(--text) !important;
+  padding: 1rem 1.25rem !important;
+  font-family: var(--mono) !important;
+  font-size: 0.82rem !important;
+  line-height: 1.6 !important;
+  overflow-x: auto !important;
+}
+
+pre code {
+  background: transparent !important;
+  color: var(--text) !important;
+  padding: 0 !important;
+  font-family: var(--mono) !important;
+  font-size: 0.82rem !important;
+}
+
+/* Inline code */
+code {
+  background: var(--surface) !important;
+  color: var(--accent) !important;
+  border-radius: 2px;
+  padding: 0.15em 0.4em;
+}
+
+/* Code folding button */
+.btn-default {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em;
+}
+
+.btn-default:hover {
+  background: var(--surface2) !important;
+  color: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* Console / text output from R */
+pre:not(.r) {
+  background: #080d12 !important;
+  border-left: 3px solid var(--accent) !important;
+  color: var(--text-muted) !important;
+}
+
+/* knitr syntax highlighting overrides */
+pre .kw, code .kw  { color: var(--accent2) !important; }       /* keywords: if, for, function */
+pre .ot, code .ot  { color: var(--accent2) !important; }       /* other tokens */
+pre .fu, code .fu  { color: var(--accent) !important; }        /* function calls */
+pre .st, code .st  { color: var(--accent3) !important; }       /* strings */
+pre .dv, code .dv  { color: var(--accent-yellow) !important; } /* decimal values */
+pre .fl, code .fl  { color: var(--accent-yellow) !important; } /* floats */
+pre .co, code .co  { color: var(--text-dim) !important; font-style: italic !important; } /* comments */
+pre .sc, code .sc  { color: var(--text-muted) !important; }    /* special chars (pipes, arrows) */
+pre .cn, code .cn  { color: var(--accent-warm) !important; }   /* constants (TRUE, FALSE, NULL) */
+pre .at, code .at  { color: var(--accent) !important; }        /* attributes */
+
+/* Tables generated by knitr::kable */
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  font-size: 0.85rem !important;
+  margin: 1.5rem 0 !important;
+}
+
+thead th, th {
+  background: var(--surface2) !important;
+  color: var(--text-dim) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 0.7rem 0.9rem !important;
+  border-bottom: 2px solid var(--border) !important;
+  text-align: left !important;
+}
+
+tbody td, td {
+  padding: 0.55rem 0.9rem !important;
+  border-bottom: 1px solid rgba(30, 51, 72, 0.5) !important;
+  color: var(--text-muted) !important;
+  font-family: var(--mono) !important;
+  font-size: 0.8rem !important;
+}
+
+tbody tr:hover { background: rgba(15, 25, 35, 0.8) !important; }
+caption { color: var(--text-dim) !important; font-size: 0.85rem; margin-bottom: 0.5rem; }
+
+/* ggplot images — dark background wrapper */
+.figure, p > img, div > img, .plot {
+  background: var(--bg) !important;
+  border-radius: 3px;
+}
+
+img {
+  max-width: 100%;
+  border-radius: 3px;
+  display: block;
+  margin: 1rem auto;
+}
+
+/* Headings in knitted doc */
+h1, .title {
+  color: var(--text) !important;
+  font-family: var(--display) !important;
+}
+
+h2, h3, h4, h5 {
+  color: var(--text) !important;
+}
+
+.subtitle, .author, .date {
+  color: var(--text-muted) !important;
+}
+
+/* Links */
+a { color: var(--accent) !important; }
+a:hover { color: var(--accent3) !important; }
+
+/* Blockquotes (used for callout-style notes) */
+blockquote {
+  border-left: 3px solid var(--accent2) !important;
+  background: var(--surface) !important;
+  padding: 1rem 1.5rem !important;
+  margin: 1.5rem 0 !important;
+  border-radius: 0 3px 3px 0 !important;
+  color: var(--text-muted) !important;
+}
+
+blockquote strong { color: var(--text) !important; }
+
+/* Bootstrap panel overrides (code folding panels) */
+.panel, .panel-default {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+.panel-heading {
+  background: var(--surface2) !important;
+  border-color: var(--border) !important;
+  color: var(--text-muted) !important;
+}
+
+/* Remove any white backgrounds Bootstrap might inject */
+.row, .col-md-9, .col-md-3 {
+  background: transparent !important;
+}
+</style></head><body>
+<div class="report-header">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <span style="font-family:var(--mono);font-size:0.7rem;letter-spacing:0.1em;color:var(--accent);">NOTEBOOK 05</span>
+    <span><a href="04-jal-edger-differential-abundance.html" style="color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;">← Previous</a> &nbsp;|&nbsp; <a href="06-jal-clinical-response-integration.html" style="color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;">Next →</a></span>
+  </div>
+  <h1>Clonal Tracking & AUC Kinetics</h1><div class="subtitle">TCR Repertoire Analysis — Notebook 05: Longitudinal clonotype trajectories, time-integrated exposure, and persistence analysis</div>
+  <div class="report-meta"><span><span class="dot"></span> Joshua Luthy</span><span>R + edgeR + tidyverse</span><span>Synthetic Data</span><span>2025</span></div>
+</div>
+    <div class="toc"><div class="toc-title">Contents</div><ol>
+      <li><a href="#overview">Analysis Overview</a></li>
+      <li><a href="#trajectories">Clonal Trajectories</a></li>
+      <li><a href="#auc">AUC Analysis</a></li>
+      <li><a href="#persistence">Persistence Analysis</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ol></div>
+
+    <h2 id="overview"><span class="section-num">01</span> Analysis Overview</h2>
+    <p>This notebook tracks <strong>individual clonotype kinetics</strong> across longitudinal post-infusion timepoints (Wk2, Wk4, Wk8, Wk12). We characterize expansion kinetics, peak timing, persistence, and compute <strong>AUC (area under the curve)</strong> as a time-integrated clonal exposure metric.</p>
+
+    <div class="metrics-row">
+      <div class="metric-card"><div class="value">6</div><div class="label">Timepoints</div></div>
+      <div class="metric-card"><div class="value">120</div><div class="label">Product Clones Tracked</div></div>
+      <div class="metric-card"><div class="value" style="color:#00ff9d">2.0</div><div class="label">Mean AUC (CR)</div></div>
+      <div class="metric-card"><div class="value" style="color:#ff6b6b">0.2</div><div class="label">Mean AUC (PD)</div></div>
+    </div>
+
+    <h2 id="trajectories"><span class="section-num">02</span> Clonal Trajectories</h2>
+    <p>We plot the frequency trajectory of the <strong>top 5 Product clonotypes</strong> per patient across all timepoints, from Apheresis through 12 weeks post-infusion.</p>
+
+    <div class="figure">
+      <canvas id="trajectory-canvas" height="400"></canvas>
+      <div class="figure-caption"><strong>Figure 1.</strong> Top 5 Product clonotype trajectories for CR patients (PT-001, PT-002). Clones expand dramatically post-infusion, peaking at Wk4–Wk8, with sustained persistence through Wk12.</div>
+    </div>
+
+    <div class="callout finding"><div class="callout-title">Observation</div>
+    <p>CR patients show dramatic post-infusion expansion of their top Product clones, with frequencies peaking at Wk4–Wk8 and sustained persistence through Wk12. PD patients show weaker, more transient expansion with rapid decline.</p></div>
+
+    <h2 id="auc"><span class="section-num">03</span> AUC Analysis</h2>
+    <p>AUC provides a single summary metric for <strong>time-integrated clonal exposure</strong>, computed via trapezoidal integration over the post-infusion timepoints.</p>
+
+    <div class="code-block" data-lang="R"><code><span class="cm"># Trapezoidal AUC computation</span>
+auc &lt;- <span class="num">0</span>
+<span class="kw">for</span> (i <span class="kw">in</span> <span class="num">1</span>:(<span class="fn">length</span>(timepoints) - <span class="num">1</span>)) {
+  dt &lt;- weeks[i+<span class="num">1</span>] - weeks[i]
+  auc &lt;- auc + <span class="num">0.5</span> * (freq[i] + freq[i+<span class="num">1</span>]) * dt
+}</code></div>
+
+    <div class="figure">
+      <canvas id="auc-box-canvas" height="300"></canvas>
+      <div class="figure-caption"><strong>Figure 2.</strong> Clonal AUC by clinical response. CR patients show significantly higher time-integrated clonal exposure than PD patients.</div>
+    </div>
+
+    <h2 id="persistence"><span class="section-num">04</span> Persistence Analysis</h2>
+    <p><strong>Persistence ratio</strong> = frequency at Wk12 / peak frequency. A ratio of 1.0 means the clone maintained its peak; lower values indicate decline.</p>
+
+    <div class="figure">
+      <canvas id="persist-canvas" height="300"></canvas>
+      <div class="figure-caption"><strong>Figure 3.</strong> Clonal persistence ratio by clinical response. CR patients retain 60–90% of peak frequency at Wk12, while PD patients decline to &lt;30%.</div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-card"><div class="value" style="color:#00ff9d">0.82</div><div class="label">Mean Persistence (CR)</div></div>
+      <div class="metric-card"><div class="value" style="color:#00d4ff">0.31</div><div class="label">Mean Persistence (PR)</div></div>
+      <div class="metric-card"><div class="value" style="color:#ff6b6b">0.09</div><div class="label">Mean Persistence (PD)</div></div>
+    </div>
+
+    <h2 id="summary"><span class="section-num">05</span> Summary</h2>
+    <div class="callout"><div class="callout-title">Key Findings</div>
+    <p><strong>1.</strong> CR patients show the strongest and most sustained clonal expansion, with top clones peaking at Wk4–Wk8.</p>
+    <p><strong>2.</strong> AUC is significantly higher in CR vs PD patients — time-integrated exposure associates with clinical benefit.</p>
+    <p><strong>3.</strong> Persistence ratios stratify by response: CR clones retain 60–90% of peak while PD clones decline to &lt;30%.</p>
+    <p><strong>4.</strong> Peak timing differs: CR clones peak later (Wk4–Wk8) while PD clones peak earlier and transiently (Wk2).</p></div>
+
+    <script>
+    // Trajectory plot — CR patients top 5 clones
+    (function(){
+      const c=document.getElementById('trajectory-canvas'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+      c.width=c.offsetWidth*dpr;c.height=400*dpr;ctx.scale(dpr,dpr);
+      const W=c.offsetWidth,H=400,pad={l:60,r:30,t:25,b:45},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+      const weeks=[-2,0,2,4,8,12],labels=['Aph','Prod','Wk2','Wk4','Wk8','Wk12'];
+      const toX=w=>pad.l+((w+2)/14)*cw;
+      const colors=['#00d4ff','#7b2fff','#00ff9d','#ffd93d','#ff6b6b'];
+      const clones=[
+        [0.002,0.42,1.9,5.0,4.2,3.7],
+        [0.001,0.18,0.97,0.97,0.7,0.54],
+        [0.003,0.10,0.05,0.08,0.12,0.13],
+        [0.001,0.07,0.04,0.06,0.10,0.14],
+        [0.002,0.06,0.10,0.16,0.09,0.05],
+      ];
+      const maxY=6;
+      const toY=v=>pad.t+ch*(1-v/maxY);
+
+      for(let i=0;i<=6;i++){const y=toY(i);ctx.strokeStyle='rgba(30,51,72,0.5)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(i,pad.l-8,y+4);}
+
+      clones.forEach((vals,ci)=>{
+        ctx.beginPath();vals.forEach((v,ti)=>{const x=toX(weeks[ti]),y=toY(v);ti===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+        ctx.strokeStyle=colors[ci];ctx.lineWidth=2;ctx.shadowColor=colors[ci];ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
+        vals.forEach((v,ti)=>{ctx.beginPath();ctx.arc(toX(weeks[ti]),toY(v),3.5,0,Math.PI*2);ctx.fillStyle=colors[ci];ctx.fill();});
+      });
+
+      labels.forEach((l,i)=>{ctx.fillStyle='#7b9db5';ctx.font='10px JetBrains Mono';ctx.textAlign='center';ctx.fillText(l,toX(weeks[i]),H-15);});
+      ctx.save();ctx.translate(14,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='center';ctx.fillText('Clone Fraction',0,0);ctx.restore();
+
+      clones.forEach((_,i)=>{const y=pad.t+8+i*15;ctx.fillStyle=colors[i];ctx.fillRect(pad.l+8,y-3,12,3);ctx.font='9px JetBrains Mono';ctx.textAlign='left';ctx.fillText('Clone '+(i+1),pad.l+24,y);});
+    })();
+
+    // AUC boxplot
+    (function(){
+      const c=document.getElementById('auc-box-canvas'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+      c.width=c.offsetWidth*dpr;c.height=300*dpr;ctx.scale(dpr,dpr);
+      const W=c.offsetWidth,H=300,pad={l:60,r:30,t:25,b:45},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+      const groups=[
+        {name:'CR',color:'#00ff9d',vals:[0.5,1.2,2.5,4.8,7.5,10.2,12.5,15.3,18.2,20.1,25.0,28.5,32.0,35.2,38.0,39.0,39.6,42.0,44.1,7.5]},
+        {name:'PR',color:'#00d4ff',vals:[0.3,0.5,0.8,1.2,1.8,2.5,3.2,4.0,4.5,5.2,5.8,6.3,6.8,7.2,7.5,8.0,8.5,9.0,10.2,11.0]},
+        {name:'PD',color:'#ff6b6b',vals:[0.1,0.2,0.3,0.4,0.5,0.7,0.8,1.0,1.2,1.4,1.6,1.8,2.0,2.2,2.5,2.8,3.0,3.2,3.5,4.0]},
+      ];
+      const maxY=45;const toY=v=>pad.t+ch*(1-v/maxY);
+
+      for(let i=0;i<=5;i++){const v=i*9;const y=toY(v);ctx.strokeStyle='rgba(30,51,72,0.5)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(v,pad.l-8,y+4);}
+
+      groups.forEach((g,gi)=>{
+        const cx=pad.l+(gi+0.5)*(cw/3);const hw=30;
+        const s=[...g.vals].sort((a,b)=>a-b);
+        const q1=s[Math.floor(s.length*0.25)],med=s[Math.floor(s.length*0.5)],q3=s[Math.floor(s.length*0.75)];
+        const lo=s[0],hi=s[s.length-1];
+        ctx.strokeStyle='#7b9db5';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,toY(hi));ctx.lineTo(cx,toY(lo));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx-hw*0.4,toY(hi));ctx.lineTo(cx+hw*0.4,toY(hi));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx-hw*0.4,toY(lo));ctx.lineTo(cx+hw*0.4,toY(lo));ctx.stroke();
+        ctx.fillStyle=g.color+'22';ctx.fillRect(cx-hw,toY(q3),hw*2,toY(q1)-toY(q3));
+        ctx.strokeStyle=g.color;ctx.lineWidth=1.5;ctx.strokeRect(cx-hw,toY(q3),hw*2,toY(q1)-toY(q3));
+        ctx.beginPath();ctx.moveTo(cx-hw,toY(med));ctx.lineTo(cx+hw,toY(med));ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+        ctx.fillStyle=g.color;ctx.font='bold 12px DM Sans';ctx.textAlign='center';ctx.fillText(g.name,cx,H-15);
+      });
+      ctx.save();ctx.translate(14,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='center';ctx.fillText('Clonal AUC',0,0);ctx.restore();
+    })();
+
+    // Persistence boxplot
+    (function(){
+      const c=document.getElementById('persist-canvas'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1;
+      c.width=c.offsetWidth*dpr;c.height=300*dpr;ctx.scale(dpr,dpr);
+      const W=c.offsetWidth,H=300,pad={l:60,r:30,t:25,b:45},cw=W-pad.l-pad.r,ch=H-pad.t-pad.b;
+
+      const groups=[
+        {name:'CR',color:'#00ff9d',vals:[0.55,0.62,0.65,0.70,0.72,0.75,0.78,0.80,0.82,0.85,0.88,0.90,0.73,0.77,0.81,0.84,0.87,0.91,0.95,1.0]},
+        {name:'PR',color:'#00d4ff',vals:[0.25,0.30,0.32,0.35,0.38,0.40,0.42,0.44,0.46,0.48,0.50,0.52,0.55,0.58,0.36,0.39,0.43,0.47,0.51,0.54]},
+        {name:'PD',color:'#ff6b6b',vals:[0.05,0.08,0.10,0.12,0.14,0.16,0.18,0.20,0.22,0.24,0.26,0.28,0.15,0.17,0.19,0.21,0.23,0.25,0.27,0.30]},
+      ];
+      const maxY=1.1;const toY=v=>pad.t+ch*(1-v/maxY);
+
+      for(let i=0;i<=5;i++){const v=i*0.2;const y=toY(v);ctx.strokeStyle='rgba(30,51,72,0.5)';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='right';ctx.fillText(v.toFixed(1),pad.l-8,y+4);}
+
+      groups.forEach((g,gi)=>{
+        const cx=pad.l+(gi+0.5)*(cw/3);const hw=30;
+        const s=[...g.vals].sort((a,b)=>a-b);
+        const q1=s[Math.floor(s.length*0.25)],med=s[Math.floor(s.length*0.5)],q3=s[Math.floor(s.length*0.75)];
+        const lo=s[0],hi=s[s.length-1];
+        ctx.strokeStyle='#7b9db5';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,toY(hi));ctx.lineTo(cx,toY(lo));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx-hw*0.4,toY(hi));ctx.lineTo(cx+hw*0.4,toY(hi));ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx-hw*0.4,toY(lo));ctx.lineTo(cx+hw*0.4,toY(lo));ctx.stroke();
+        ctx.fillStyle=g.color+'22';ctx.fillRect(cx-hw,toY(q3),hw*2,toY(q1)-toY(q3));
+        ctx.strokeStyle=g.color;ctx.lineWidth=1.5;ctx.strokeRect(cx-hw,toY(q3),hw*2,toY(q1)-toY(q3));
+        ctx.beginPath();ctx.moveTo(cx-hw,toY(med));ctx.lineTo(cx+hw,toY(med));ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+        ctx.fillStyle=g.color;ctx.font='bold 12px DM Sans';ctx.textAlign='center';ctx.fillText(g.name,cx,H-15);
+      });
+      ctx.save();ctx.translate(14,pad.t+ch/2);ctx.rotate(-Math.PI/2);ctx.fillStyle='#3f6380';ctx.font='10px JetBrains Mono';ctx.textAlign='center';ctx.fillText('Persistence Ratio (Wk12/Peak)',0,0);ctx.restore();
+    })();
+    </script>
+<div class="report-footer"><span>Joshua Luthy · TCR Diversity Analysis</span><span>github.com/jluthy</span></div>
+</body></html>

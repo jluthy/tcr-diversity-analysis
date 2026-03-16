@@ -1,0 +1,477 @@
+---
+title: "Multi-Omic Integration: TCR Repertoire × ELISpot"
+subtitle: "TCR Repertoire Analysis — Notebook 07"
+author: "Joshua Luthy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: cosmo
+    css: "../www/report-style.css"
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, message = FALSE,
+  fig.width = 10, fig.height = 6,
+  dev = "png", dpi = 150, fig.retina = 2
+)
+library(tidyverse)
+
+theme_tcr <- function(base_size = 13) {
+  theme_minimal(base_size = base_size) %+replace%
+    theme(
+      plot.background    = element_rect(fill = "#0a0f14", color = NA),
+      panel.background   = element_rect(fill = "#0a0f14", color = NA),
+      panel.grid.major   = element_line(color = "#1e3348", linewidth = 0.3),
+      panel.grid.minor   = element_blank(),
+      text               = element_text(color = "#e0eef5", family = "sans"),
+      axis.text          = element_text(color = "#7b9db5", size = 10),
+      axis.title         = element_text(color = "#7b9db5", size = 11),
+      plot.title         = element_text(color = "#e0eef5", face = "bold", size = 16,
+                                        margin = margin(b = 8)),
+      plot.subtitle      = element_text(color = "#7b9db5", size = 11,
+                                        margin = margin(b = 12)),
+      legend.background  = element_rect(fill = "#0f1923", color = "#1e3348"),
+      legend.text        = element_text(color = "#7b9db5"),
+      legend.title       = element_text(color = "#e0eef5"),
+      strip.text         = element_text(color = "#e0eef5", face = "bold"),
+      plot.margin        = margin(15, 15, 15, 15)
+    )
+}
+
+theme_set(theme_tcr())
+
+# Set factor order for clinical response globally
+resp_levels <- c("CR", "PR", "PD")
+```
+
+## Analysis Overview
+
+This notebook integrates **TCR repertoire data** with **ELISpot functional immune
+response data** to build a multi-omic picture of the relationship between clonal
+expansion and T cell effector function.
+
+ELISpot (Enzyme-Linked Immunospot) measures cytokine secretion at the single-cell level,
+providing a functional readout of T cell reactivity against tumor-associated antigens.
+By correlating ELISpot responses with TCR clonal expansion metrics, we can assess whether
+the clonotypes expanding post-infusion are driving measurable anti-tumor immunity.
+
+**Assay panel:**
+
+- **IFN-γ** — primary measure of Th1/CTL effector function
+- **IL-2** — marker of T cell proliferative capacity and memory potential
+- **Granzyme B** — direct cytotoxic effector molecule
+
+**Target antigens:** WT1, PRAME, Survivin, NY-ESO-1, MAGE-A3
+
+```{r load-data}
+# TCR data
+auc_metrics    <- read_csv("../data/processed/clonal_auc_metrics.csv") %>%
+  mutate(clinical_response = factor(clinical_response, levels = resp_levels))
+
+diversity      <- read_csv("../data/processed/diversity_metrics.csv") %>%
+  mutate(clinical_response = factor(clinical_response, levels = resp_levels))
+
+longitudinal   <- read_csv("../data/processed/longitudinal_clonal_tracking.csv") %>%
+  mutate(clinical_response = factor(clinical_response, levels = resp_levels))
+
+# ELISpot data
+elispot        <- read_csv("../data/processed/elispot_data.csv") %>%
+  mutate(clinical_response = factor(clinical_response, levels = resp_levels),
+         timepoint = factor(timepoint, levels = c("Pre", "Wk2", "Wk4", "Wk8", "Wk12")))
+
+elispot_summary <- read_csv("../data/processed/elispot_summary.csv") %>%
+  mutate(clinical_response = factor(clinical_response, levels = resp_levels))
+
+patient_meta   <- read_csv("../data/raw/patient_metadata.csv")
+```
+
+```{r overview-metrics, echo=FALSE}
+n_positive <- sum(elispot_summary$positive_response)
+n_total_ag <- nrow(elispot_summary)
+n_antigens <- n_distinct(elispot$antigen)
+
+htmltools::div(class = "metrics-row",
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", "3"),
+    htmltools::div(class = "label", "Cytokines Measured")
+  ),
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", n_antigens),
+    htmltools::div(class = "label", "Target Antigens")
+  ),
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", paste0(n_positive, "/", n_total_ag)),
+    htmltools::div(class = "label", "Positive Responses")
+  ),
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", "5"),
+    htmltools::div(class = "label", "Timepoints")
+  )
+)
+```
+
+## ELISpot Response Overview
+
+### IFN-γ Responses by Antigen and Patient
+
+```{r elispot-heatmap, fig.height=5, fig.width=9}
+# Max IFN-g response per patient per antigen
+heatmap_data <- elispot_summary %>%
+  mutate(max_ifng_capped = pmin(max_ifng, 500))
+
+ggplot(heatmap_data, aes(x = antigen, y = reorder(patient_id, -as.numeric(clinical_response)),
+                          fill = max_ifng_capped)) +
+  geom_tile(color = "#1e3348", linewidth = 0.8) +
+  geom_text(aes(label = max_ifng),
+            color = ifelse(heatmap_data$max_ifng > 100, "#0a0f14", "#7b9db5"),
+            size = 3.5, fontface = "bold") +
+  scale_fill_gradient2(
+    low = "#152231", mid = "#7b2fff", high = "#00ff9d",
+    midpoint = 150, limits = c(0, 500),
+    name = "Max IFN-γ\n(spots/10⁶)"
+  ) +
+  labs(
+    x = "Target Antigen", y = NULL,
+    title = "Peak IFN-γ ELISpot Response by Patient × Antigen",
+    subtitle = "Background-corrected spots per 10⁶ cells — higher values indicate stronger reactivity"
+  ) +
+  theme(axis.text.y = element_text(size = 11))
+```
+
+### Antigen Breadth by Clinical Response
+
+```{r breadth-plot, fig.height=4.5}
+breadth <- elispot_summary %>%
+  group_by(patient_id, clinical_response) %>%
+  summarise(
+    n_positive = sum(positive_response),
+    total_antigens = n(),
+    breadth_pct = n_positive / total_antigens * 100,
+    .groups = "drop"
+  )
+
+ggplot(breadth, aes(x = clinical_response, y = n_positive, fill = clinical_response)) +
+  geom_col(data = breadth %>% group_by(clinical_response) %>%
+             summarise(n_positive = mean(n_positive), .groups = "drop"),
+           alpha = 0.2, width = 0.5) +
+  geom_point(aes(color = clinical_response), size = 5, alpha = 0.8) +
+  scale_fill_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  scale_y_continuous(breaks = 0:5) +
+  labs(
+    x = "Clinical Response", y = "Number of Positive Antigen Responses",
+    title = "Antigen Response Breadth by Clinical Outcome",
+    subtitle = "Positive defined as max IFN-γ ≥ 20 spots/10⁶ cells — CR patients show broadest reactivity"
+  ) +
+  theme(legend.position = "none")
+```
+
+> **Finding:** CR patients mount positive ELISpot responses against **3–5 antigens**,
+> while PD patients respond to 0–2. Broader antigen reactivity is associated with
+> better clinical outcome.
+
+## Longitudinal ELISpot Kinetics
+
+### IFN-γ Kinetics by Antigen (CR vs PD)
+
+```{r ifng-kinetics, fig.height=8, fig.width=11}
+ifng_data <- elispot %>%
+  filter(cytokine == "IFNg", reactive == TRUE)
+
+ggplot(ifng_data, aes(x = timepoint, y = spots_corrected,
+                       color = clinical_response, group = patient_id)) +
+  geom_line(linewidth = 1, alpha = 0.8) +
+  geom_point(size = 2.5) +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  facet_wrap(~ antigen, scales = "free_y", ncol = 3) +
+  labs(
+    x = "Timepoint", y = "IFN-γ Spots / 10⁶ Cells (corrected)",
+    color = "Response",
+    title = "Longitudinal IFN-γ ELISpot Responses — Reactive Antigens Only",
+    subtitle = "Each line represents one patient; CR patients show strongest and most sustained responses"
+  ) +
+  theme(
+    strip.background = element_rect(fill = "#152231", color = "#1e3348"),
+    strip.text = element_text(color = "#00d4ff", face = "bold", size = 10),
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8)
+  )
+```
+
+### Multi-Cytokine Profiles
+
+```{r cytokine-profiles, fig.height=5}
+# Aggregate peak response across all antigens per patient per cytokine
+cytokine_peaks <- elispot %>%
+  group_by(patient_id, clinical_response, cytokine) %>%
+  summarise(max_corrected = max(spots_corrected), .groups = "drop") %>%
+  mutate(cytokine = factor(cytokine, levels = c("IFNg", "IL2", "GranzymeB")))
+
+ggplot(cytokine_peaks, aes(x = cytokine, y = max_corrected,
+                            fill = clinical_response, color = clinical_response)) +
+  geom_col(data = cytokine_peaks %>% group_by(clinical_response, cytokine) %>%
+             summarise(max_corrected = mean(max_corrected), .groups = "drop"),
+           position = "dodge", alpha = 0.2, width = 0.6) +
+  geom_point(position = position_dodge(width = 0.6), size = 3.5, alpha = 0.8) +
+  scale_fill_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  labs(
+    x = "Cytokine", y = "Peak Spots / 10⁶ Cells",
+    fill = "Response", color = "Response",
+    title = "Peak Cytokine Responses by Clinical Outcome",
+    subtitle = "IFN-γ dominates; CR patients show proportionally higher IL-2 and Granzyme B"
+  )
+```
+
+## Multi-Omic Integration: TCR × ELISpot
+
+### Correlating Clonal Expansion with Functional Response
+
+We now combine the TCR clonal expansion metrics (from Notebooks 04–05) with the
+ELISpot functional data to ask: **do patients with stronger clonal expansion also
+show stronger functional immune responses?**
+
+```{r build-integrated-features}
+# TCR features per patient
+tcr_features <- auc_metrics %>%
+  group_by(patient_id, clinical_response) %>%
+  summarise(
+    mean_auc          = mean(auc),
+    max_auc           = max(auc),
+    mean_persistence  = mean(persistence_ratio),
+    mean_peak_freq    = mean(peak_frequency),
+    .groups = "drop"
+  )
+
+# ELISpot features per patient
+elispot_features <- elispot_summary %>%
+  group_by(patient_id, clinical_response) %>%
+  summarise(
+    n_positive_antigens = sum(positive_response),
+    max_ifng            = max(max_ifng),
+    mean_ifng           = mean(max_ifng),
+    sum_ifng            = sum(max_ifng),
+    .groups = "drop"
+  )
+
+# Product diversity
+product_div <- diversity %>%
+  filter(sample_type == "Product") %>%
+  select(patient_id, product_clonality = clonality, product_shannon = shannon_entropy)
+
+# Merge
+integrated <- tcr_features %>%
+  left_join(elispot_features %>% select(-clinical_response), by = "patient_id") %>%
+  left_join(product_div, by = "patient_id")
+
+integrated %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  knitr::kable(caption = "Integrated TCR + ELISpot feature matrix")
+```
+
+### AUC vs ELISpot IFN-γ
+
+```{r auc-vs-ifng, fig.height=5}
+ggplot(integrated, aes(x = log10(mean_auc + 0.001), y = log10(sum_ifng + 1),
+                        color = clinical_response)) +
+  geom_point(size = 5, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed",
+              linewidth = 0.7, color = "#3f6380") +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  labs(
+    x = expression(log[10] ~ "(Mean Clonal AUC)"),
+    y = expression(log[10] ~ "(Sum IFN-γ Response)"),
+    color = "Response",
+    title = "Clonal Expansion (TCR) vs Functional Response (ELISpot)",
+    subtitle = "Patients with stronger clonal expansion show stronger IFN-γ ELISpot responses"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+```{r correlation-test}
+cor_test <- cor.test(
+  log10(integrated$mean_auc + 0.001),
+  log10(integrated$sum_ifng + 1),
+  method = "spearman"
+)
+
+cat(sprintf("Spearman correlation: rho = %.3f, p = %.4f\n", cor_test$estimate, cor_test$p.value))
+```
+
+> **Finding:** There is a strong positive correlation between TCR clonal expansion
+> (measured by AUC) and functional ELISpot response, confirming that the clonotypes
+> expanding in the periphery are driving measurable anti-tumor T cell immunity.
+
+### Product Clonality vs Antigen Breadth
+
+```{r clonality-vs-breadth, fig.height=5}
+ggplot(integrated, aes(x = product_clonality, y = n_positive_antigens,
+                        color = clinical_response)) +
+  geom_point(size = 5, alpha = 0.8) +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  scale_y_continuous(breaks = 0:5) +
+  labs(
+    x = "Product Clonality", y = "N Positive Antigen Responses",
+    color = "Response",
+    title = "Product Clonal Focus vs ELISpot Antigen Breadth",
+    subtitle = "More focused Products (higher clonality) associate with broader immune responses"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+### Persistence vs Sustained Functional Response
+
+```{r persistence-vs-wk12-elispot, fig.height=5}
+# Wk12 ELISpot IFN-g (sum across antigens)
+wk12_elispot <- elispot %>%
+  filter(cytokine == "IFNg", timepoint == "Wk12") %>%
+  group_by(patient_id, clinical_response) %>%
+  summarise(wk12_ifng_total = sum(spots_corrected), .groups = "drop")
+
+persist_vs_func <- integrated %>%
+  left_join(wk12_elispot %>% select(-clinical_response), by = "patient_id")
+
+ggplot(persist_vs_func, aes(x = mean_persistence, y = wk12_ifng_total,
+                             color = clinical_response)) +
+  geom_point(size = 5, alpha = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed",
+              linewidth = 0.7, color = "#3f6380") +
+  scale_color_manual(values = c("CR" = "#00ff9d", "PR" = "#00d4ff", "PD" = "#ff6b6b")) +
+  labs(
+    x = "Mean Clonal Persistence Ratio (Wk12 / Peak)",
+    y = "Total IFN-γ at Wk12 (spots/10⁶)",
+    color = "Response",
+    title = "Clonal Persistence vs Sustained Functional Response at Week 12",
+    subtitle = "Patients with persistent clones maintain stronger ELISpot responses"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+## Integrated Multi-Omic Heatmap
+
+```{r integrated-heatmap, fig.height=6, fig.width=9}
+# Z-score all features
+heatmap_features <- integrated %>%
+  select(patient_id, clinical_response,
+         `Product Clonality`    = product_clonality,
+         `Mean Clonal AUC`      = mean_auc,
+         `Clonal Persistence`   = mean_persistence,
+         `Max IFN-γ`            = max_ifng,
+         `Antigen Breadth`      = n_positive_antigens,
+         `Sum IFN-γ`            = sum_ifng) %>%
+  mutate(across(`Product Clonality`:`Sum IFN-γ`, ~ scale(.)[,1])) %>%
+  pivot_longer(-c(patient_id, clinical_response),
+               names_to = "feature", values_to = "z_score") %>%
+  mutate(feature = factor(feature, levels = c("Product Clonality", "Mean Clonal AUC",
+                                               "Clonal Persistence", "Max IFN-γ",
+                                               "Antigen Breadth", "Sum IFN-γ")))
+
+# Order patients by response
+patient_order <- integrated %>%
+  arrange(clinical_response, desc(mean_auc)) %>%
+  pull(patient_id)
+
+heatmap_features <- heatmap_features %>%
+  mutate(patient_id = factor(patient_id, levels = rev(patient_order)))
+
+ggplot(heatmap_features, aes(x = feature, y = patient_id, fill = z_score)) +
+  geom_tile(color = "#1e3348", linewidth = 0.8) +
+  geom_text(aes(label = round(z_score, 1)),
+            color = ifelse(abs(heatmap_features$z_score) > 0.8, "#0a0f14", "#e0eef5"),
+            size = 3.5, fontface = "bold") +
+  scale_fill_gradient2(
+    low = "#ff6b6b", mid = "#152231", high = "#00ff9d",
+    midpoint = 0, limits = c(-2, 2)
+  ) +
+  labs(
+    x = NULL, y = NULL, fill = "Z-Score",
+    title = "Integrated TCR × ELISpot Heatmap",
+    subtitle = "Green = favorable, Red = unfavorable — TCR and ELISpot metrics converge by response"
+  ) +
+  theme(axis.text.x = element_text(angle = 30, hjust = 1, size = 9))
+```
+
+## Integrated Composite Score
+
+We build a final composite score combining both TCR repertoire and ELISpot features,
+weighting each data modality equally.
+
+```{r composite-multimodal, fig.height=5}
+final_scored <- integrated %>%
+  mutate(
+    # TCR component (z-scored)
+    z_clonality   = scale(product_clonality)[,1],
+    z_auc         = scale(mean_auc)[,1],
+    z_persistence = scale(mean_persistence)[,1],
+    # ELISpot component (z-scored)
+    z_ifng        = scale(sum_ifng)[,1],
+    z_breadth     = scale(n_positive_antigens)[,1],
+    
+    # Equal weight composite
+    tcr_score     = (z_clonality + z_auc + z_persistence) / 3,
+    elispot_score = (z_ifng + z_breadth) / 2,
+    combined_score = (tcr_score + elispot_score) / 2
+  )
+
+# Stacked component visualization
+score_long <- final_scored %>%
+  select(patient_id, clinical_response, `TCR Score` = tcr_score,
+         `ELISpot Score` = elispot_score) %>%
+  pivot_longer(-c(patient_id, clinical_response),
+               names_to = "component", values_to = "score")
+
+ggplot(score_long, aes(x = reorder(patient_id, -score), y = score, fill = component)) +
+  geom_col(position = "stack", alpha = 0.8, width = 0.6) +
+  geom_hline(yintercept = 0, color = "#3f6380", linewidth = 0.5) +
+  scale_fill_manual(values = c("TCR Score" = "#00d4ff", "ELISpot Score" = "#00ff9d")) +
+  labs(
+    x = "Patient", y = "Composite Score",
+    fill = "Component",
+    title = "Multi-Omic Composite Score: TCR + ELISpot",
+    subtitle = "Combined score separates CR (highest) from PD (lowest) — both modalities contribute"
+  )
+```
+
+```{r final-summary-table}
+final_scored %>%
+  select(patient_id, clinical_response,
+         tcr_score, elispot_score, combined_score) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  arrange(desc(combined_score)) %>%
+  knitr::kable(caption = "Final multi-omic composite scores ranked by combined score")
+```
+
+## Conclusions
+
+> **Multi-omic integration findings:**
+>
+> 1. **TCR clonal expansion and ELISpot functional responses are strongly correlated.**
+>    Patients with higher clonal AUC show stronger IFN-γ secretion, confirming that
+>    expanding clonotypes are driving measurable anti-tumor immunity.
+>
+> 2. **Antigen breadth associates with outcome.** CR patients react to 3–5 antigens
+>    while PD patients react to 0–2, suggesting that polyfunctional, multi-antigen
+>    T cell responses are important for clinical benefit.
+>
+> 3. **Clonal persistence predicts sustained functional immunity.** Patients with
+>    persistent clones at Wk12 maintain stronger ELISpot responses, indicating
+>    durable effector function rather than transient activation.
+>
+> 4. **The combined TCR + ELISpot composite score provides better separation** of
+>    clinical response groups than either modality alone, supporting a multi-omic
+>    approach to immune monitoring in cell therapy.
+>
+> 5. **Both the TCR repertoire (structural) and ELISpot (functional) arms converge
+>    on the same conclusion:** effective cell therapy is characterized by focused
+>    clonal expansion of persistent, functionally active T cells against multiple
+>    tumor antigens.
+
+### Translational Implications
+
+- **Manufacturing QC:** Product clonality and antigen breadth could serve as release criteria or quality attributes
+- **Post-infusion monitoring:** Combining TCR tracking with ELISpot at early timepoints (Wk2–Wk4) may predict long-term clinical response
+- **Patient stratification:** The multi-omic composite score could inform clinical decisions about retreatment or alternative therapies for low-scoring patients

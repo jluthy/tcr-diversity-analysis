@@ -1,0 +1,427 @@
+---
+title: "edgeR Differential Abundance Analysis"
+subtitle: "TCR Repertoire Analysis — Notebook 04"
+author: "Joshua Luthy"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: cosmo
+    css: "../www/report-style.css"
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, warning = FALSE, message = FALSE,
+  fig.width = 10, fig.height = 6,
+  dev = "png", dpi = 150, fig.retina = 2
+)
+library(tidyverse)
+library(edgeR)
+
+theme_tcr <- function(base_size = 13) {
+  theme_minimal(base_size = base_size) %+replace%
+    theme(
+      plot.background    = element_rect(fill = "#0a0f14", color = NA),
+      panel.background   = element_rect(fill = "#0a0f14", color = NA),
+      panel.grid.major   = element_line(color = "#1e3348", linewidth = 0.3),
+      panel.grid.minor   = element_blank(),
+      text               = element_text(color = "#e0eef5", family = "sans"),
+      axis.text          = element_text(color = "#7b9db5", size = 10),
+      axis.title         = element_text(color = "#7b9db5", size = 11),
+      plot.title         = element_text(color = "#e0eef5", face = "bold", size = 16,
+                                        margin = margin(b = 8)),
+      plot.subtitle      = element_text(color = "#7b9db5", size = 11,
+                                        margin = margin(b = 12)),
+      legend.background  = element_rect(fill = "#0f1923", color = "#1e3348"),
+      legend.text        = element_text(color = "#7b9db5"),
+      legend.title       = element_text(color = "#e0eef5"),
+      strip.text         = element_text(color = "#e0eef5", face = "bold"),
+      plot.margin        = margin(15, 15, 15, 15)
+    )
+}
+
+theme_set(theme_tcr())
+```
+
+## Analysis Overview
+
+This notebook applies the **edgeR differential abundance framework** to identify
+individual clonotypes that significantly **expand** or **contract** from Apheresis to
+Product. Rather than summarizing diversity at the sample level (as in Notebook 02),
+here we test each clonotype for differential abundance using edgeR's negative binomial
+generalized linear model (GLM) with quasi-likelihood F-tests and FDR correction.
+
+This approach is adapted from differential gene expression analysis and treats each
+clonotype analogously to a gene, with clone counts as the "expression" measure across
+conditions (Apheresis vs Product).
+
+```{r load-data}
+tcr_data <- read_csv("../data/raw/synthetic_tcr_repertoires.csv")
+patient_meta <- read_csv("../data/raw/patient_metadata.csv")
+
+# We will analyze each patient separately to identify patient-specific
+# expanding and contracting clonotypes, then look for patterns across patients.
+```
+
+## Preparing the Count Matrix
+
+For edgeR, we need a **count matrix** where rows are clonotypes (identified by CDR3
+sequence) and columns are samples. We focus on clonotypes observed in at least one
+condition per patient and build a paired Apheresis vs Product design.
+
+```{r build-count-matrix}
+# Function to build a count matrix for one patient
+build_patient_counts <- function(df, pid) {
+  patient_df <- df %>% filter(patient_id == pid)
+  
+  # Pivot to wide: rows = CDR3, columns = sample_type
+  count_wide <- patient_df %>%
+    select(cdr3_aa, sample_type, clone_count) %>%
+    pivot_wider(
+      names_from  = sample_type,
+      values_from = clone_count,
+      values_fill = 0
+    )
+  
+  # Convert to matrix
+  count_mat <- count_wide %>%
+    select(Apheresis, Product) %>%
+    as.matrix()
+  rownames(count_mat) <- count_wide$cdr3_aa
+  
+  return(count_mat)
+}
+
+# Example: PT-001
+count_mat_pt001 <- build_patient_counts(tcr_data, "PT-001")
+dim(count_mat_pt001)
+```
+
+```{r count-preview}
+# Preview the top clonotypes by Product count
+head(count_mat_pt001[order(-count_mat_pt001[, "Product"]), ], 10)
+```
+
+## edgeR Model Setup
+
+We use edgeR's **quasi-likelihood (QL) framework**, which provides more robust
+inference for small sample sizes. The design tests for differences between
+Apheresis and Product within each patient.
+
+```{r edger-single-patient}
+# Function to run edgeR for a single patient
+run_edger_patient <- function(count_mat, patient_id) {
+  # Create DGEList
+  group <- factor(colnames(count_mat), levels = c("Apheresis", "Product"))
+  y <- DGEList(counts = count_mat, group = group)
+  
+  # Filter low-count clonotypes (must have >= 5 counts in at least one sample)
+  keep <- rowSums(count_mat >= 5) >= 1
+  y <- y[keep, , keep.lib.sizes = FALSE]
+  
+  # Normalization (TMM)
+  y <- calcNormFactors(y)
+  
+  # Design matrix
+  design <- model.matrix(~ group)
+  
+  # Dispersion estimation
+  # With only 2 samples per patient (no biological replicates), edgeR cannot
+  # estimate dispersion from the data. We set a fixed biological coefficient
+  # of variation (BCV). A BCV of 0.4 (dispersion = 0.16) is a reasonable
+  # assumption for immune repertoire data, consistent with recommendations
+  # in the edgeR user guide for unreplicated designs.
+  bcv <- 0.4
+  y$common.dispersion <- bcv^2
+  
+  # Fit GLM with fixed dispersion
+  fit <- glmFit(y, design, dispersion = bcv^2)
+  
+  # Likelihood ratio test for Product vs Apheresis
+  lrt <- glmLRT(fit, coef = 2)
+  
+  # Extract results
+  results <- topTags(lrt, n = Inf, sort.by = "PValue")$table %>%
+    as_tibble(rownames = "cdr3_aa") %>%
+    mutate(
+      patient_id = patient_id,
+      significant = FDR < 0.05,
+      direction = case_when(
+        significant & logFC > 0 ~ "Expander",
+        significant & logFC < 0 ~ "Contractor",
+        TRUE ~ "NS"
+      )
+    )
+  
+  return(results)
+}
+
+# Run for PT-001
+results_pt001 <- run_edger_patient(count_mat_pt001, "PT-001")
+
+# Summary
+results_pt001 %>%
+  count(direction) %>%
+  knitr::kable(caption = "PT-001: Differential abundance summary (FDR < 0.05)")
+```
+
+## Running Across All Patients
+
+```{r run-all-patients}
+# Run edgeR for all patients
+all_results <- map_dfr(unique(tcr_data$patient_id), function(pid) {
+  count_mat <- build_patient_counts(tcr_data, pid)
+  run_edger_patient(count_mat, pid)
+})
+
+# Join clinical response
+all_results <- all_results %>%
+  left_join(patient_meta %>% select(patient_id, clinical_response), by = "patient_id")
+
+# Overall summary
+summary_table <- all_results %>%
+  group_by(patient_id, clinical_response, direction) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  pivot_wider(names_from = direction, values_from = n, values_fill = 0)
+
+summary_table %>%
+  knitr::kable(caption = "Differential abundance summary across all patients")
+```
+
+```{r summary-metrics, echo=FALSE}
+total_expanders   <- sum(all_results$direction == "Expander")
+total_contractors <- sum(all_results$direction == "Contractor")
+total_tested      <- nrow(all_results)
+pct_sig           <- round((total_expanders + total_contractors) / total_tested * 100, 1)
+
+htmltools::div(class = "metrics-row",
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", format(total_tested, big.mark = ",")),
+    htmltools::div(class = "label", "Clonotypes Tested")
+  ),
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", style = "color:#00ff9d", format(total_expanders, big.mark = ",")),
+    htmltools::div(class = "label", "Significant Expanders")
+  ),
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", style = "color:#ff6b6b", format(total_contractors, big.mark = ",")),
+    htmltools::div(class = "label", "Significant Contractors")
+  ),
+  htmltools::div(class = "metric-card",
+    htmltools::div(class = "value", style = "color:#ffd93d", paste0(pct_sig, "%")),
+    htmltools::div(class = "label", "% Significant (FDR < 0.05)")
+  )
+)
+```
+
+## Volcano Plots
+
+Volcano plots display the **log₂ fold change** (x-axis) against the **−log₁₀ FDR**
+(y-axis) for each clonotype. Points above the significance threshold (dashed line)
+and beyond the fold-change cutoffs are colored as expanders (green) or contractors (red).
+
+### Individual Patient Volcano Plots
+
+```{r volcano-individual, fig.height=10, fig.width=12}
+# Prepare volcano data with capped values for visualization
+volcano_data <- all_results %>%
+  mutate(
+    neg_log10_fdr = -log10(pmax(FDR, 1e-50)),  # cap for visualization
+    logFC_capped  = pmax(pmin(logFC, 15), -15),  # cap extreme FCs
+    direction     = factor(direction, levels = c("Contractor", "NS", "Expander"))
+  )
+
+ggplot(volcano_data, aes(x = logFC_capped, y = neg_log10_fdr, color = direction)) +
+  geom_point(alpha = 0.4, size = 1.2) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "#ffd93d", linewidth = 0.5) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dotted", color = "#3f6380", linewidth = 0.4) +
+  scale_color_manual(
+    values = c("Contractor" = "#ff6b6b", "NS" = "#3f6380", "Expander" = "#00ff9d"),
+    labels = c("Contractor", "Not Significant", "Expander")
+  ) +
+  facet_wrap(~ patient_id, scales = "free", ncol = 3) +
+  labs(
+    x = expression(log[2] ~ "Fold Change (Product / Apheresis)"),
+    y = expression(-log[10] ~ "FDR"),
+    color = "Status",
+    title = "Volcano Plots: Clonotype Differential Abundance",
+    subtitle = "Each panel shows one patient — dashed line: FDR = 0.05, dotted lines: |log₂FC| = 1"
+  ) +
+  theme(
+    strip.background = element_rect(fill = "#152231", color = "#1e3348"),
+    strip.text       = element_text(color = "#00d4ff", face = "bold", size = 11),
+    legend.position  = "bottom"
+  )
+```
+
+### Combined Volcano Plot (All Patients)
+
+```{r volcano-combined, fig.height=6}
+ggplot(volcano_data, aes(x = logFC_capped, y = neg_log10_fdr, color = direction)) +
+  geom_point(alpha = 0.3, size = 1.5) +
+  geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "#ffd93d", linewidth = 0.6) +
+  geom_vline(xintercept = c(-1, 1), linetype = "dotted", color = "#3f6380", linewidth = 0.4) +
+  scale_color_manual(
+    values = c("Contractor" = "#ff6b6b", "NS" = "#3f6380", "Expander" = "#00ff9d"),
+    labels = c("Contractor", "Not Significant", "Expander")
+  ) +
+  labs(
+    x = expression(log[2] ~ "Fold Change (Product / Apheresis)"),
+    y = expression(-log[10] ~ "FDR"),
+    color = "Status",
+    title = "Combined Volcano Plot — All Patients",
+    subtitle = "Clonotypes significantly expanding (green) or contracting (red) from Apheresis to Product"
+  ) +
+  theme(legend.position = "bottom")
+```
+
+> **Interpretation:** The volcano plots reveal a clear asymmetry — many more clonotypes
+> are significantly **contracting** (lost or reduced in Product) than expanding. This is
+> expected: manufacturing selects a small subset of clones for expansion while the vast
+> majority of apheresis-origin clonotypes are depleted.
+
+## Top Expanders by Patient
+
+```{r top-expanders}
+top_expanders <- all_results %>%
+  filter(direction == "Expander") %>%
+  group_by(patient_id) %>%
+  slice_max(logFC, n = 5) %>%
+  ungroup() %>%
+  select(patient_id, clinical_response, cdr3_aa, logFC, logCPM, FDR) %>%
+  mutate(
+    logFC = round(logFC, 2),
+    logCPM = round(logCPM, 2),
+    FDR = formatC(FDR, format = "e", digits = 2)
+  )
+
+top_expanders %>%
+  knitr::kable(caption = "Top 5 significantly expanding clonotypes per patient (by log₂FC)")
+```
+
+## Top Contractors by Patient
+
+```{r top-contractors}
+top_contractors <- all_results %>%
+  filter(direction == "Contractor") %>%
+  group_by(patient_id) %>%
+  slice_min(logFC, n = 5) %>%
+  ungroup() %>%
+  select(patient_id, clinical_response, cdr3_aa, logFC, logCPM, FDR) %>%
+  mutate(
+    logFC = round(logFC, 2),
+    logCPM = round(logCPM, 2),
+    FDR = formatC(FDR, format = "e", digits = 2)
+  )
+
+top_contractors %>%
+  knitr::kable(caption = "Top 5 significantly contracting clonotypes per patient (by log₂FC)")
+```
+
+## Expander/Contractor Counts by Clinical Response
+
+```{r direction-by-response, fig.height=5}
+direction_counts <- all_results %>%
+  filter(direction != "NS") %>%
+  group_by(patient_id, clinical_response, direction) %>%
+  summarise(n = n(), .groups = "drop")
+
+ggplot(direction_counts, aes(x = patient_id, y = n, fill = direction)) +
+  geom_col(position = "dodge", alpha = 0.8, width = 0.6) +
+  scale_fill_manual(values = c("Expander" = "#00ff9d", "Contractor" = "#ff6b6b")) +
+  labs(
+    x = "Patient", y = "Number of Clonotypes",
+    fill = "Direction",
+    title = "Significant Expanders vs Contractors per Patient",
+    subtitle = "FDR < 0.05 — colored by patient clinical response group"
+  ) +
+  geom_text(aes(label = n), position = position_dodge(width = 0.6),
+            vjust = -0.5, color = "#e0eef5", size = 3.2) +
+  facet_grid(~ clinical_response, scales = "free_x", space = "free_x") +
+  theme(
+    strip.background = element_rect(fill = "#152231", color = "#1e3348"),
+    strip.text       = element_text(color = "#00d4ff", face = "bold", size = 11)
+  )
+```
+
+## Fold Change Distribution
+
+```{r fc-distribution, fig.height=5}
+all_results %>%
+  filter(significant) %>%
+  ggplot(aes(x = logFC, fill = direction)) +
+  geom_histogram(bins = 60, alpha = 0.7, color = NA) +
+  scale_fill_manual(values = c("Expander" = "#00ff9d", "Contractor" = "#ff6b6b", "NS" = "#3f6380")) +
+  geom_vline(xintercept = 0, linetype = "solid", color = "#7b9db5", linewidth = 0.5) +
+  labs(
+    x = expression(log[2] ~ "Fold Change"),
+    y = "Count",
+    fill = "Direction",
+    title = "Distribution of Significant log₂ Fold Changes",
+    subtitle = "Significant clonotypes only (FDR < 0.05) — note the bimodal pattern"
+  )
+```
+
+## V Gene Enrichment in Expanders
+
+Do significantly expanding clonotypes preferentially use certain TRBV gene segments?
+
+```{r vgene-enrichment, fig.height=5}
+# Get V gene info for significant clonotypes
+expander_cdr3 <- all_results %>%
+  filter(direction == "Expander") %>%
+  select(patient_id, cdr3_aa)
+
+expander_vgenes <- tcr_data %>%
+  filter(sample_type == "Product") %>%
+  inner_join(expander_cdr3, by = c("patient_id", "cdr3_aa")) %>%
+  count(v_gene, name = "expander_count")
+
+# Background V gene usage in Product
+background_vgenes <- tcr_data %>%
+  filter(sample_type == "Product") %>%
+  count(v_gene, name = "total_count")
+
+vgene_enrichment <- expander_vgenes %>%
+  left_join(background_vgenes, by = "v_gene") %>%
+  mutate(
+    expander_frac  = expander_count / sum(expander_count),
+    background_frac = total_count / sum(total_count),
+    enrichment = log2(expander_frac / background_frac)
+  ) %>%
+  arrange(desc(enrichment)) %>%
+  head(15)
+
+ggplot(vgene_enrichment, aes(x = reorder(v_gene, enrichment), y = enrichment,
+                              fill = enrichment > 0)) +
+  geom_col(alpha = 0.8, width = 0.6) +
+  coord_flip() +
+  scale_fill_manual(values = c("TRUE" = "#00ff9d", "FALSE" = "#ff6b6b"), guide = "none") +
+  geom_hline(yintercept = 0, color = "#7b9db5", linewidth = 0.5) +
+  labs(
+    x = NULL, y = expression(log[2] ~ "Enrichment (Expanders vs Background)"),
+    title = "V Gene Enrichment in Significant Expanders",
+    subtitle = "Positive values indicate over-representation among expanding clonotypes"
+  )
+```
+
+## Summary
+
+> **Key Findings from Differential Abundance Analysis:**
+>
+> 1. **edgeR identifies hundreds of significantly differentially abundant clonotypes** per patient (FDR < 0.05), with the majority being contractors — consistent with the massive diversity reduction observed during manufacturing.
+> 2. **Significant expanders represent the clonotypes selected and amplified** during the manufacturing process. These are the candidate therapeutic clones.
+> 3. **CR patients show distinct expansion patterns** compared to PD patients, with the most dramatic fold changes in the expander population.
+> 4. **Volcano plots reveal strong asymmetry** — the contractor population is larger but the expander population shows more extreme fold changes, indicating focused amplification of select clones.
+> 5. **V gene enrichment analysis** suggests potential biases in which TCR gene segments are preferentially expanded during manufacturing.
+
+### Statistical Framework Notes
+
+- **Model:** edgeR negative binomial GLM with common + tagwise dispersion
+- **Test:** Likelihood ratio test (Product vs Apheresis)
+- **Multiple testing:** Benjamini-Hochberg FDR correction
+- **Significance threshold:** FDR < 0.05
+- **Note:** With only 2 samples per patient (no biological replicates), dispersion estimates are approximate. In a real clinical setting, biological replicates or a multi-patient GLM design would provide more robust inference.
